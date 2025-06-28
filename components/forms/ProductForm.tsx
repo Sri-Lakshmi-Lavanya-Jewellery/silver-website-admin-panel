@@ -1,9 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Product, ProductFormData, CATEGORIES } from '@/types'
+import { Product, ProductFormData, Category } from '@/types'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import ImageUpload from '@/components/ui/ImageUpload'
+import { categoryApi, analyticsApi } from '@/lib/api'
+import { toast } from 'react-hot-toast'
+
+// Utility function to format category/subcategory names
+const formatCategoryName = (name: string | undefined | null): string => {
+  if (!name || typeof name !== 'string') {
+    return ''
+  }
+  const words = name.replace(/[-_]/g, ' ').split(' ')
+  return words.map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  }).join(' ')
+}
 
 interface ProductFormProps {
   product?: Product | null
@@ -16,7 +29,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     title: '',
     images: [],
     isNewProduct: false,
-    category: 'pooja-items',
+    category: '',
     subcategory: '',
     weight: '',
     inStock: true,
@@ -34,6 +47,78 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [categories, setCategories] = useState<Category[]>([])
+  const [subcategories, setSubcategories] = useState<string[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false)
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      const response = await categoryApi.getCategories(true) // Include inactive for admin
+      if (response.success && response.data) {
+        // Filter only active root categories for the dropdown
+        const activeRootCategories = response.data.filter(cat => cat.isActive && !cat.parentId)
+        setCategories(activeRootCategories)
+        
+        // Set first category as default if no category is selected
+        if (!formData.category && activeRootCategories.length > 0) {
+          setFormData(prev => ({ ...prev, category: activeRootCategories[0].name.toLowerCase().replace(/\s+/g, '-') }))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      toast.error('Failed to load categories')
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
+  // Fetch subcategories when category changes
+  const fetchSubcategories = async (categoryName: string) => {
+    if (!categoryName) {
+      setSubcategories([])
+      return
+    }
+
+    try {
+      setLoadingSubcategories(true)
+      const response = await analyticsApi.getSubcategories(categoryName)
+      if (response.success && response.data) {
+        setSubcategories(response.data)
+      } else {
+        setSubcategories([])
+      }
+    } catch (error) {
+      console.error('Error fetching subcategories:', error)
+      setSubcategories([])
+    } finally {
+      setLoadingSubcategories(false)
+    }
+  }
+
+  // Handle category change
+  const handleCategoryChange = (categoryName: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      category: categoryName,
+      subcategory: '' // Reset subcategory when category changes
+    }))
+    fetchSubcategories(categoryName)
+  }
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (formData.category) {
+      fetchSubcategories(formData.category)
+    }
+  }, [formData.category])
 
   useEffect(() => {
     if (product) {
@@ -203,14 +288,21 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   className="form-select"
+                  disabled={loadingCategories}
                 >
-                  {CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </option>
-                  ))}
+                  <option value="">
+                    {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                  </option>
+                  {categories.map((category) => {
+                    const categoryValue = category.name.toLowerCase().replace(/\s+/g, '-')
+                    return (
+                      <option key={category.id} value={categoryValue}>
+                        {category.name}
+                      </option>
+                    )
+                  })}
                 </select>
                 {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
               </div>
@@ -220,13 +312,32 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Subcategory
                 </label>
-                <input
-                  type="text"
-                  value={formData.subcategory}
-                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g., kamakshi-deepam"
-                />
+                {formData.category ? (
+                  <select
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                    className="form-select"
+                    disabled={loadingSubcategories}
+                  >
+                    <option value="">
+                      {loadingSubcategories ? 'Loading subcategories...' : 'Select a subcategory (optional)'}
+                    </option>
+                    {subcategories.map((subcategory) => (
+                      <option key={subcategory} value={subcategory}>
+                        {formatCategoryName(subcategory)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                    className="form-input"
+                    placeholder="Select a category first or enter custom subcategory"
+                    disabled
+                  />
+                )}
               </div>
 
               {/* Weight */}
