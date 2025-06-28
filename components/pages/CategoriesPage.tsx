@@ -1,26 +1,39 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CategoryCount } from '@/types'
-import { analyticsApi } from '@/lib/api'
+import { Category } from '@/types'
+import { categoryApi, analyticsApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
-import { TagIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, FunnelIcon, ArrowPathIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import CategoryForm from '@/components/forms/CategoryForm'
+import CategoryList from '@/components/ui/CategoryList'
+import BulkCategoryOperations from '@/components/ui/BulkCategoryOperations'
+import CategoryDetailModal from '@/components/ui/CategoryDetailModal'
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<CategoryCount[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [parentForSubcategory, setParentForSubcategory] = useState<Category | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [showBulkOperations, setShowBulkOperations] = useState(false)
+  const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<Category | null>(null)
 
   useEffect(() => {
     fetchCategories()
-  }, [])
+  }, [showInactiveCategories])
 
   const fetchCategories = async () => {
     try {
       setLoading(true)
-      const response = await analyticsApi.getCategoryCounts()
+      const response = await categoryApi.getCategoryHierarchy()
       if (response.success && response.data) {
-        setCategories(response.data)
+        // Build hierarchy structure
+        const categoriesWithHierarchy = buildCategoryHierarchy(response.data)
+        setCategories(categoriesWithHierarchy)
       }
     } catch (error) {
       toast.error('Failed to load categories')
@@ -29,6 +42,105 @@ export default function CategoriesPage() {
       setLoading(false)
     }
   }
+
+  const buildCategoryHierarchy = (flatCategories: Category[]): Category[] => {
+    const categoryMap = new Map<string, Category>()
+    const rootCategories: Category[] = []
+
+    // First pass: create all category objects
+    flatCategories.forEach(cat => {
+      categoryMap.set(cat.id, { ...cat, children: [] })
+    })
+
+    // Second pass: build hierarchy
+    flatCategories.forEach(cat => {
+      const categoryWithChildren = categoryMap.get(cat.id)!
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        const parent = categoryMap.get(cat.parentId)!
+        if (!parent.children) parent.children = []
+        parent.children.push(categoryWithChildren)
+      } else {
+        rootCategories.push(categoryWithChildren)
+      }
+    })
+
+    // Sort categories by sortOrder
+    const sortCategories = (cats: Category[]) => {
+      cats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      cats.forEach(cat => {
+        if (cat.children && cat.children.length > 0) {
+          sortCategories(cat.children)
+        }
+      })
+    }
+
+    sortCategories(rootCategories)
+    return rootCategories
+  }
+
+  const handleSaveCategory = async (savedCategory: Category) => {
+    await fetchCategories()
+    setShowForm(false)
+    setEditingCategory(null)
+    setParentForSubcategory(null)
+  }
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category)
+    setParentForSubcategory(null)
+    setShowForm(true)
+  }
+
+  const handleDeleteCategory = async (category: Category) => {
+    await fetchCategories()
+  }
+
+  const handleToggleActive = async (category: Category) => {
+    await fetchCategories()
+  }
+
+  const handleAddSubcategory = (parentCategory: Category) => {
+    setParentForSubcategory(parentCategory)
+    setEditingCategory(null)
+    setShowForm(true)
+  }
+
+  const handleAddCategory = () => {
+    setEditingCategory(null)
+    setParentForSubcategory(null)
+    setShowForm(true)
+  }
+
+  const handleCancelForm = () => {
+    setShowForm(false)
+    setEditingCategory(null)
+    setParentForSubcategory(null)
+  }
+
+  const filteredCategories = categories.filter(category => {
+    const matchesSearch = searchTerm === '' || 
+      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesActiveFilter = showInactiveCategories || category.isActive
+
+    return matchesSearch && matchesActiveFilter
+  })
+
+  const getAllCategories = (cats: Category[]): Category[] => {
+    let allCats: Category[] = []
+    cats.forEach(cat => {
+      allCats.push(cat)
+      if (cat.children && cat.children.length > 0) {
+        allCats = allCats.concat(getAllCategories(cat.children))
+      }
+    })
+    return allCats
+  }
+
+  const allCategoriesFlat = getAllCategories(categories)
+  const activeCategories = allCategoriesFlat.filter(cat => cat.isActive)
+  const totalProducts = 0 // This would come from product counts if available
 
   if (loading) {
     return (
@@ -41,154 +153,146 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
           <p className="mt-1 text-sm text-gray-600">
             Manage product categories and subcategories
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center"
-        >
-          <PlusIcon className="w-4 h-4 mr-2" />
-          Add Category
-        </button>
-      </div>
-
-      {/* Categories Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
-          <CategoryCard 
-            key={category.category} 
-            category={category} 
-            onEdit={() => {/* TODO: Implement edit */}}
-          />
-        ))}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Category Statistics</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600">{categories.length}</div>
-            <div className="text-sm text-gray-600">Total Categories</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {categories.reduce((sum, cat) => sum + cat.count, 0)}
-            </div>
-            <div className="text-sm text-gray-600">Total Products</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {Math.round(categories.reduce((sum, cat) => sum + cat.count, 0) / categories.length) || 0}
-            </div>
-            <div className="text-sm text-gray-600">Avg per Category</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {categories.find(cat => cat.count === Math.max(...categories.map(c => c.count)))?.category || 'N/A'}
-            </div>
-            <div className="text-sm text-gray-600">Most Popular</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Management Tools */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Management Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-            <TagIcon className="w-6 h-6 text-blue-600 mr-3" />
-            <div className="text-left">
-              <h3 className="font-medium text-gray-900">Manage Subcategories</h3>
-              <p className="text-sm text-gray-600">Create and organize subcategories</p>
-            </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowBulkOperations(true)}
+            className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+          >
+            <Cog6ToothIcon className="w-4 h-4 mr-2" />
+            Bulk Actions
           </button>
-          
-          <button className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-            <PlusIcon className="w-6 h-6 text-green-600 mr-3" />
-            <div className="text-left">
-              <h3 className="font-medium text-gray-900">Bulk Operations</h3>
-              <p className="text-sm text-gray-600">Move products between categories</p>
-            </div>
+          <button
+            onClick={() => fetchCategories()}
+            className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+          >
+            <ArrowPathIcon className="w-4 h-4 mr-2" />
+            Refresh
           </button>
-          
-          <button className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-            <PencilIcon className="w-6 h-6 text-purple-600 mr-3" />
-            <div className="text-left">
-              <h3 className="font-medium text-gray-900">Category Settings</h3>
-              <p className="text-sm text-gray-600">Configure display and SEO options</p>
-            </div>
+          <button
+            onClick={handleAddCategory}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Category
           </button>
         </div>
       </div>
 
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
-            <p className="text-gray-600 mb-4">
-              Category management features will be available in the next update.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-primary-600">{allCategoriesFlat.length}</div>
+          <div className="text-sm text-gray-600">Total Categories</div>
         </div>
-      )}
-    </div>
-  )
-}
-
-interface CategoryCardProps {
-  category: CategoryCount
-  onEdit: () => void
-}
-
-function CategoryCard({ category, onEdit }: CategoryCardProps) {
-  const categoryName = category.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
-  
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <div className="p-2 bg-primary-100 rounded-lg mr-3">
-            <TagIcon className="w-6 h-6 text-primary-600" />
-          </div>
-          <div>
-            <h3 className="font-medium text-gray-900">{categoryName}</h3>
-            <p className="text-sm text-gray-600">{category.count} products</p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-green-600">{activeCategories.length}</div>
+          <div className="text-sm text-gray-600">Active Categories</div>
         </div>
-        <button
-          onClick={onEdit}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
-        >
-          <PencilIcon className="w-4 h-4" />
-        </button>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Products:</span>
-          <span className="font-medium">{category.count}</span>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-blue-600">
+            {categories.filter(cat => !cat.parentId).length}
+          </div>
+          <div className="text-sm text-gray-600">Root Categories</div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-primary-600 h-2 rounded-full" 
-            style={{ width: `${Math.min((category.count / 10) * 100, 100)}%` }}
-          ></div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-purple-600">
+            {allCategoriesFlat.filter(cat => cat.parentId).length}
+          </div>
+          <div className="text-sm text-gray-600">Subcategories</div>
         </div>
       </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={showInactiveCategories}
+                onChange={(e) => setShowInactiveCategories(e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Show inactive</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Categories List */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">All Categories</h2>
+          <div className="text-sm text-gray-600">
+            {filteredCategories.length} of {categories.length} categories
+          </div>
+        </div>
+
+        <CategoryList
+          categories={filteredCategories}
+          onEdit={handleEditCategory}
+          onDelete={handleDeleteCategory}
+          onToggleActive={handleToggleActive}
+          onAddSubcategory={handleAddSubcategory}
+          onViewDetails={setSelectedCategoryForDetails}
+        />
+      </div>
+
+      {/* Category Form Modal */}
+      <CategoryForm
+        category={editingCategory || (parentForSubcategory ? {
+          id: '',
+          name: '',
+          description: '',
+          parentId: parentForSubcategory.id,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: '',
+          updatedAt: '',
+        } as Category : undefined)}
+        parentCategories={allCategoriesFlat.filter(cat => !cat.parentId)}
+        onSave={handleSaveCategory}
+        onCancel={handleCancelForm}
+        isOpen={showForm}
+      />
+
+      {/* Bulk Operations Modal */}
+      <BulkCategoryOperations
+        categories={allCategoriesFlat}
+        isOpen={showBulkOperations}
+        onClose={() => setShowBulkOperations(false)}
+        onComplete={async () => {
+          await fetchCategories()
+          setShowBulkOperations(false)
+        }}
+      />
+
+      {/* Category Detail Modal */}
+      <CategoryDetailModal
+        category={selectedCategoryForDetails}
+        isOpen={!!selectedCategoryForDetails}
+        onClose={() => setSelectedCategoryForDetails(null)}
+        onEdit={(category) => {
+          setSelectedCategoryForDetails(null)
+          handleEditCategory(category)
+        }}
+      />
     </div>
   )
 }

@@ -124,6 +124,7 @@ export interface Category {
   id: string
   name: string
   description?: string
+  thumbnail?: string | null
   parentId?: string | null
   isActive: boolean
   sortOrder?: number

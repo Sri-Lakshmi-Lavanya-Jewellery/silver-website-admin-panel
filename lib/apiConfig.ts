@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Base URLs
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://silver-website-backend.onrender.com/api/v1',
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1',
   HEALTH_URL: process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:3000',
   
   // Default pagination
