@@ -166,13 +166,13 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
           {product.title}
         </h3>
         <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-          <span className="capitalize">{product.category.replace('-', ' ')}</span>
+          <span className="capitalize">{product.category?.replace('-', ' ') || 'Uncategorized'}</span>
           <span>{product.weight}</span>
         </div>
         
         {product.subcategory && (
           <div className="text-xs text-gray-400 mb-3 capitalize">
-            {product.subcategory.replace('-', ' ')}
+            {product.subcategory?.replace('-', ' ')}
           </div>
         )}
 
