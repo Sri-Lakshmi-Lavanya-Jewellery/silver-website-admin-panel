@@ -232,6 +232,10 @@ export const categoryApi = {
     return apiRequest<Category[]>(`/categories?includeInactive=${includeInactive}`)
   },
 
+  getTopLevelCategories : async (includeInactive: boolean = false): Promise<APIResponse<Category[]>> => {
+    return apiRequest<Category[]>(`/categories/top-level?includeInactive=${includeInactive}`)
+  },
+
   // Get category hierarchy
   getCategoryHierarchy: async (): Promise<APIResponse<Category[]>> => {
     return apiRequest<Category[]>('/categories/hierarchy')
@@ -259,10 +263,13 @@ export const categoryApi = {
       method: 'DELETE',
     })
   },
-
   // Get category with products
   getCategoryProducts: async (id: string, page: number = 1, limit: number = 10): Promise<APIResponse<{ products: Product[]; category: Category }>> => {
     return apiRequest<{ products: Product[]; category: Category }>(`/categories/${id}/products?page=${page}&limit=${limit}`)
+  },
+  // Get subcategories for a category
+  getSubcategories(categoryId: string): Promise<APIResponse<Category[]>> {
+    return apiRequest<Category[]>(`/categories/${categoryId}/subcategories`)
   },
 }
 

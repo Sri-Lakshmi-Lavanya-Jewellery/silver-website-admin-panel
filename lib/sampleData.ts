@@ -152,3 +152,93 @@ export const sampleCategoryStats = [
   { category: "traditional", count: 2 },
   { category: "festival", count: 2 }
 ]
+
+// Sample category hierarchy data for testing
+export const sampleCategories = [
+  {
+    id: "cat-1",
+    name: "Pooja Items",
+    description: "Religious and spiritual items",
+    thumbnail: null,
+    parentCategory: null,
+    isActive: true,
+    sortOrder: 1,
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+    children: [
+      {
+        id: "cat-1-1",
+        name: "Deepams",
+        description: "Traditional oil lamps",
+        thumbnail: null,
+        parentCategory: "cat-1",
+        isActive: true,
+        sortOrder: 1,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+        children: []
+      },
+      {
+        id: "cat-1-2",
+        name: "Incense",
+        description: "Agarbatti and dhoop",
+        thumbnail: null,
+        parentCategory: "cat-1",
+        isActive: true,
+        sortOrder: 2,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+        children: []
+      }
+    ]
+  },
+  {
+    id: "cat-2",
+    name: "Jewelry",
+    description: "Silver jewelry and ornaments",
+    thumbnail: null,
+    parentCategory: null,
+    isActive: true,
+    sortOrder: 2,
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+    children: [
+      {
+        id: "cat-2-1",
+        name: "Anklets",
+        description: "Traditional silver anklets",
+        thumbnail: null,
+        parentCategory: "cat-2",
+        isActive: true,
+        sortOrder: 1,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+        children: []
+      },
+      {
+        id: "cat-2-2",
+        name: "Bangles",
+        description: "Silver bangles and bracelets",
+        thumbnail: null,
+        parentCategory: "cat-2",
+        isActive: true,
+        sortOrder: 2,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+        children: []
+      }
+    ]
+  },
+  {
+    id: "cat-3",
+    name: "Home Decor",
+    description: "Decorative items for home",
+    thumbnail: null,
+    parentCategory: null,
+    isActive: true,
+    sortOrder: 3,
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+    children: []
+  }
+]

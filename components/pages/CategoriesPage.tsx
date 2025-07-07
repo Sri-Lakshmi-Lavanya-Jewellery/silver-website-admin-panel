@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Category } from '@/types'
 import { categoryApi, analyticsApi } from '@/lib/api'
+import { sampleCategories } from '@/lib/sampleData'
 import { toast } from 'react-hot-toast'
 import { PlusIcon, FunnelIcon, ArrowPathIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import CategoryForm from '@/components/forms/CategoryForm'
@@ -17,7 +18,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [parentForSubcategory, setParentForSubcategory] = useState<Category | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+  const [showInactiveCategories, setShowInactiveCategories] = useState(true) // Temporarily default to true to show all categories
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [showBulkOperations, setShowBulkOperations] = useState(false)
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<Category | null>(null)
@@ -31,51 +32,52 @@ export default function CategoriesPage() {
       setLoading(true)
       const response = await categoryApi.getCategoryHierarchy()
       if (response.success && response.data) {
-        // Build hierarchy structure
-        const categoriesWithHierarchy = buildCategoryHierarchy(response.data)
-        setCategories(categoriesWithHierarchy)
+        // Convert API response to match our Category interface
+        const normalizedCategories = normalizeCategories(response.data)
+        setCategories(normalizedCategories)
+        console.log('Loaded categories with hierarchy:', normalizedCategories)
       }
     } catch (error) {
       toast.error('Failed to load categories')
       console.error('Categories error:', error)
+      // Fallback to sample data for development
+      const normalizedSampleData = normalizeCategories(sampleCategories)
+      setCategories(normalizedSampleData)
     } finally {
       setLoading(false)
     }
   }
 
-  const buildCategoryHierarchy = (flatCategories: Category[]): Category[] => {
-    const categoryMap = new Map<string, Category>()
-    const rootCategories: Category[] = []
-
-    // First pass: create all category objects
-    flatCategories.forEach(cat => {
-      categoryMap.set(cat.id, { ...cat, children: [] })
-    })
-
-    // Second pass: build hierarchy
-    flatCategories.forEach(cat => {
-      const categoryWithChildren = categoryMap.get(cat.id)!
-      if (cat.parentId && categoryMap.has(cat.parentId)) {
-        const parent = categoryMap.get(cat.parentId)!
-        if (!parent.children) parent.children = []
-        parent.children.push(categoryWithChildren)
-      } else {
-        rootCategories.push(categoryWithChildren)
+  const normalizeCategories = (apiCategories: any[]): Category[] => {
+    console.log('Normalizing categories from API:', apiCategories)
+    
+    const normalize = (cat: any): Category => {
+      const normalized: Category = {
+        id: cat.id,
+        name: cat.name,
+        description: cat.description || undefined,
+        thumbnail: cat.thumbnail || undefined,
+        // Map parentCategory (string) to parentId for our interface
+        parentId: cat.parentCategory || undefined,
+        isActive: cat.isActive,
+        sortOrder: cat.sortOrder || 0,
+        createdAt: cat.createdAt,
+        updatedAt: cat.updatedAt,
+        // Recursively normalize children if they exist
+        children: cat.children ? cat.children.map(normalize) : []
       }
-    })
-
-    // Sort categories by sortOrder
-    const sortCategories = (cats: Category[]) => {
-      cats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-      cats.forEach(cat => {
-        if (cat.children && cat.children.length > 0) {
-          sortCategories(cat.children)
-        }
+      
+      console.log(`Normalized category ${cat.name}:`, {
+        hasParent: !!normalized.parentId,
+        childrenCount: normalized.children?.length || 0
       })
+      
+      return normalized
     }
 
-    sortCategories(rootCategories)
-    return rootCategories
+    const result = apiCategories.map(normalize)
+    console.log('Final normalized categories:', result)
+    return result
   }
 
   const handleSaveCategory = async (savedCategory: Category) => {

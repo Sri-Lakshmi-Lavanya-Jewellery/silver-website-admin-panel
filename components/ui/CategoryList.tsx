@@ -36,6 +36,12 @@ export default function CategoryList({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null)
 
+  console.log('CategoryList received categories:', categories.map(c => ({
+    name: c.name,
+    hasChildren: !!(c.children && c.children.length > 0),
+    childrenCount: c.children?.length || 0
+  })))
+
   const toggleExpanded = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories)
     if (newExpanded.has(categoryId)) {
@@ -90,11 +96,26 @@ export default function CategoryList({
     const isExpanded = expandedCategories.has(category.id)
     const isDeleting = deletingCategory === category.id
 
+    console.log(`Rendering category ${category.name} at level ${level}:`, {
+      hasChildren,
+      childrenCount: category.children?.length || 0,
+      isExpanded
+    })
+
     return (
       <div key={category.id} className="border border-gray-200 rounded-lg mb-2">
         <div className="p-4 bg-white hover:bg-gray-50 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
+              {/* Level indicator for subcategories */}
+              {level > 0 && (
+                <div className="flex items-center">
+                  {Array.from({ length: level }, (_, i) => (
+                    <div key={i} className="w-4 h-0.5 bg-gray-300 mr-1"></div>
+                  ))}
+                </div>
+              )}
+              
               {/* Expand/Collapse Button */}
               {hasChildren ? (
                 <button
@@ -220,8 +241,9 @@ export default function CategoryList({
     )
   }
 
-  // Filter out categories that have a parent (they'll be shown as children)
-  const rootCategories = categories.filter(cat => !cat.parentId)
+  // Since the API returns a hierarchical structure, we should display all categories passed to us
+  // The parent component (CategoriesPage) will only pass root categories with their children nested
+  const categoriesToRender = categories
 
   if (categories.length === 0) {
     return (
@@ -234,7 +256,7 @@ export default function CategoryList({
 
   return (
     <div className="space-y-2">
-      {rootCategories.map((category) => renderCategory(category))}
+      {categoriesToRender.map((category) => renderCategory(category))}
     </div>
   )
 }

@@ -48,48 +48,50 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [categories, setCategories] = useState<Category[]>([])
-  const [subcategories, setSubcategories] = useState<string[]>([])
+  const [subcategories, setSubcategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingSubcategories, setLoadingSubcategories] = useState(false)
 
-  // Fetch categories on component mount
+
+  // Fetch all categories (flat list) on mount
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        // Get hierarchy and flatten to get only parent categories
+        const response = await categoryApi.getCategoryHierarchy()
+        if (response.success && response.data && response.data.length > 0) {
+          // Filter only root categories (categories without parentId)
+          const rootCategories = response.data.filter(cat => {
+            // Handle both API formats: parentCategory (API) and parentId (normalized)
+            const hasParent = (cat as any).parentCategory || cat.parentId
+            return !hasParent
+          })
+          setCategories(rootCategories)
+          // Set first category as default if not set
+          if (!formData.category && rootCategories.length > 0) {
+            setFormData(prev => ({ ...prev, category: rootCategories[0].id || '' }))
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        toast.error('Failed to load categories')
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
     fetchCategories()
   }, [])
 
-  // Fetch categories from API
-  const fetchCategories = async () => {
-    try {
-      setLoadingCategories(true)
-      const response = await categoryApi.getCategories(true) // Include inactive for admin
-      if (response.success && response.data) {
-        // Filter only active root categories for the dropdown
-        const activeRootCategories = response.data.filter(cat => cat.isActive && !cat.parentId)
-        setCategories(activeRootCategories)
-        
-        // Set first category as default if no category is selected
-        if (!formData.category && activeRootCategories.length > 0) {
-          setFormData(prev => ({ ...prev, category: activeRootCategories[0].name.toLowerCase().replace(/\s+/g, '-') }))
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-      toast.error('Failed to load categories')
-    } finally {
-      setLoadingCategories(false)
-    }
-  }
-
-  // Fetch subcategories when category changes
-  const fetchSubcategories = async (categoryName: string) => {
-    if (!categoryName) {
+  // Fetch subcategories for a given category ID
+  const fetchSubcategories = async (categoryId: string) => {
+    if (!categoryId) {
       setSubcategories([])
       return
     }
-
     try {
       setLoadingSubcategories(true)
-      const response = await analyticsApi.getSubcategories(categoryName)
+      const response = await categoryApi.getSubcategories(categoryId)
       if (response.success && response.data) {
         setSubcategories(response.data)
       } else {
@@ -103,20 +105,22 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     }
   }
 
-  // Handle category change
-  const handleCategoryChange = (categoryName: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      category: categoryName,
-      subcategory: '' // Reset subcategory when category changes
+  // Handle category change (by ID)
+  const handleCategoryChange = (categoryId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      category: categoryId,
+      subcategory: ''
     }))
-    fetchSubcategories(categoryName)
+    fetchSubcategories(categoryId)
   }
 
   // Fetch subcategories when category changes
   useEffect(() => {
     if (formData.category) {
       fetchSubcategories(formData.category)
+    } else {
+      setSubcategories([])
     }
   }, [formData.category])
 
@@ -295,14 +299,11 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                   <option value="">
                     {loadingCategories ? 'Loading categories...' : 'Select a category'}
                   </option>
-                  {categories.map((category) => {
-                    const categoryValue = category.name.toLowerCase().replace(/\s+/g, '-')
-                    return (
-                      <option key={category.id} value={categoryValue}>
-                        {category.name}
-                      </option>
-                    )
-                  })}
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
               </div>
@@ -323,8 +324,8 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                       {loadingSubcategories ? 'Loading subcategories...' : 'Select a subcategory (optional)'}
                     </option>
                     {subcategories.map((subcategory) => (
-                      <option key={subcategory} value={subcategory}>
-                        {formatCategoryName(subcategory)}
+                      <option key={subcategory.id} value={subcategory.id}>
+                        {subcategory.name}
                       </option>
                     ))}
                   </select>
