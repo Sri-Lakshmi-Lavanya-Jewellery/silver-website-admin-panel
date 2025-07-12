@@ -1,6 +1,6 @@
 'use client'
 
-import { Product } from '@/types'
+import { Product, getCategoryDisplayName, getSubcategoryDisplayName } from '@/types'
 import Image from 'next/image'
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline'
 
@@ -166,13 +166,13 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
           {product.title}
         </h3>
         <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-          <span className="capitalize">{product.category?.replace('-', ' ') || 'Uncategorized'}</span>
+          <span className="capitalize">{getCategoryDisplayName(product.category)}</span>
           <span>{product.weight}</span>
         </div>
         
         {product.subcategory && (
           <div className="text-xs text-gray-400 mb-3 capitalize">
-            {product.subcategory?.replace('-', ' ')}
+            {getSubcategoryDisplayName(product.subcategory)}
           </div>
         )}
 

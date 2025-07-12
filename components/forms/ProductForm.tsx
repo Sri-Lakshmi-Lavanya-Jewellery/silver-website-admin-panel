@@ -129,12 +129,14 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     if (product) {
       setFormData({
         title: product.title,
+        description: product.description,
         images: product.images || [],
         isNewProduct: product.isNewProduct,
-        category: product.category,
-        subcategory: product.subcategory,
+        category: typeof product.category === 'object' ? product.category.id : product.category,
+        subcategory: typeof product.subcategory === 'object' ? product.subcategory.id : product.subcategory,
         weight: product.weight,
         inStock: product.inStock,
+        isActive: product.isActive,
         models: product.models
       })
     }

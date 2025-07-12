@@ -334,7 +334,12 @@ export default function AnalyticsPage() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-gray-900 truncate">{product.title}</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs text-gray-600">{product.category}</span>
+                    <span className="text-xs text-gray-600">
+                      {typeof product.category === 'object' ? product.category.name : product.category}
+                    </span>
+                    {typeof product.subcategory === 'object' && product.subcategory.name && (
+                      <span className="text-xs text-gray-500">• {product.subcategory.name}</span>
+                    )}
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>

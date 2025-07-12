@@ -1,16 +1,25 @@
 export interface Product {
   id: string
   title: string
+  description?: string
   images: string[]
   isNewProduct: boolean
-  category: string
-  subcategory: string
+  category: CategoryInfo
+  subcategory: CategoryInfo
   weight: string
   inStock: boolean
+  isActive?: boolean
   models: Record<string, Record<string, ProductDimension>>
   createdAt: string
   updatedAt: string
-  createdBy?: string
+  createdBy?: string | null
+}
+
+export interface CategoryInfo {
+  id: string
+  name: string
+  slug: string
+  description?: string
 }
 
 export interface ProductDimension {
@@ -30,6 +39,7 @@ export interface ProductFormData {
   subcategory: string
   weight: string
   inStock: boolean
+  isActive?: boolean
   models: Record<string, Record<string, ProductDimension>>
 }
 
@@ -182,4 +192,19 @@ export interface BulkOperationResult {
   successful: number
   failed: number
   results: any[]
+}
+
+// Utility functions for handling category display
+export const getCategoryDisplayName = (category: CategoryInfo | string | undefined | null): string => {
+  if (!category) return 'Uncategorized'
+  if (typeof category === 'object') return category.name
+  if (typeof category === 'string') return category.replace('-', ' ')
+  return 'Uncategorized'
+}
+
+export const getSubcategoryDisplayName = (subcategory: CategoryInfo | string | undefined | null): string => {
+  if (!subcategory) return ''
+  if (typeof subcategory === 'object') return subcategory.name
+  if (typeof subcategory === 'string') return subcategory.replace('-', ' ')
+  return ''
 }

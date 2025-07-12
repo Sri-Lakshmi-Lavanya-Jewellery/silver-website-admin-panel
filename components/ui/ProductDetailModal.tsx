@@ -63,7 +63,7 @@ export default function ProductDetailModal({
             <div className="space-y-4">
               {allImages.length > 0 && (
                 <>
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="aspect-square bg-gray-100 text-black rounded-lg overflow-hidden">
                     <Image
                       src={allImages[currentImageIndex] || '/placeholder-product.jpg'}
                       alt={product.title}
@@ -98,7 +98,7 @@ export default function ProductDetailModal({
             </div>
 
             {/* Product Details */}
-            <div className="space-y-6">
+            <div className="space-y-6 text-black">
               {/* Basic Info */}
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -119,11 +119,15 @@ export default function ProductDetailModal({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Category:</span>
-                    <p className="font-medium capitalize">{product.category?.replace('-', ' ')}</p>
+                    <p className="font-medium capitalize">
+                      {typeof product.category === 'object' ? product.category.name : product.category}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Subcategory:</span>
-                    <p className="font-medium capitalize">{product.subcategory?.replace('-', ' ')}</p>
+                    <p className="font-medium capitalize">
+                      {typeof product.subcategory === 'object' ? product.subcategory.name : product.subcategory}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Weight:</span>
