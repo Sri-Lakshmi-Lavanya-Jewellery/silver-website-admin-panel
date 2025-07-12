@@ -23,6 +23,7 @@ export interface ProductDimension {
 
 export interface ProductFormData {
   title: string
+  description?: string;
   images: string[]
   isNewProduct: boolean
   category: string

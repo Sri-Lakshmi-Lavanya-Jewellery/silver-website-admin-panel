@@ -27,6 +27,7 @@ interface ProductFormProps {
 export default function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
+    description: '',
     images: [],
     isNewProduct: false,
     category: '',
@@ -220,15 +221,29 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   }
 
   const updateModelDimension = (modelName: string, dimensionKey: string, field: string, value: string | string[]) => {
-    setFormData({
-      ...formData,
-      models: {
-        ...formData.models,
-        [modelName]: {
-          ...formData.models[modelName],
-          [dimensionKey]: {
-            ...formData.models[modelName][dimensionKey],
-            [field]: value
+    setFormData(prevFormData => {
+      // Ensure the model exists
+      if (!prevFormData.models[modelName]) {
+        console.warn(`Model "${modelName}" does not exist`)
+        return prevFormData
+      }
+      
+      // Ensure the dimension exists
+      if (!prevFormData.models[modelName][dimensionKey]) {
+        console.warn(`Dimension "${dimensionKey}" does not exist in model "${modelName}"`)
+        return prevFormData
+      }
+
+      return {
+        ...prevFormData,
+        models: {
+          ...prevFormData.models,
+          [modelName]: {
+            ...prevFormData.models[modelName],
+            [dimensionKey]: {
+              ...prevFormData.models[modelName][dimensionKey],
+              [field]: value
+            }
           }
         }
       }
@@ -236,6 +251,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   }
 
   const updateModelImages = (modelName: string, dimensionKey: string, images: string[]) => {
+    console.log("Model image updation: ", modelName, dimensionKey, images);
     updateModelDimension(modelName, dimensionKey, 'images', images)
   }
 
@@ -244,8 +260,8 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     setFormData(prev => ({ ...prev, images }))
   }, [])
 
-  const handleModelImagesChange = useCallback((modelName: string, dimensionKey: string) => {
-    return (images: string[]) => updateModelImages(modelName, dimensionKey, images)
+  const handleModelImagesChange = useCallback((modelName: string, dimensionKey: string, images: string[]) => {
+    updateModelImages(modelName, dimensionKey, images)
   }, [])
 
   return (
@@ -283,6 +299,19 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                   placeholder="Enter product title"
                 />
                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="form-input"
+                  placeholder="Enter product Description"
+                />
+                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
               </div>
 
               {/* Category */}
@@ -483,7 +512,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                         </label>
                         <ImageUpload
                           images={dimension.images || []}
-                          onImagesChange={handleModelImagesChange(modelName, dimensionKey)}
+                          onImagesChange={(images) => handleModelImagesChange(modelName, dimensionKey, images)}
                           maxImages={5}
                         />
                       </div>
