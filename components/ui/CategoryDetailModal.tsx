@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Category, Product } from '@/types'
+import { Category, Product, getSubcategoryDisplayName } from '@/types'
 import { categoryApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import {
@@ -276,7 +276,7 @@ export default function CategoryDetailModal({
                       <h5 className="font-medium text-gray-900 truncate">{product.title}</h5>
                       <div className="flex items-center space-x-4 mt-1">
                         <span className="text-sm text-gray-600">
-                          {product.subcategory}
+                          {getSubcategoryDisplayName(product.subcategory)}
                         </span>
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           product.inStock 
