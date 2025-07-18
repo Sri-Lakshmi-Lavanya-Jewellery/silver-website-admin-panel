@@ -26,7 +26,8 @@ export default function ProductFiltersComponent({ filters, onFiltersChange }: Pr
     setLocalSearch('')
     onFiltersChange({
       page: 1,
-      limit: filters.limit || 12
+      limit: filters.limit || 12,
+      isActive: true // Default to showing active products
     })
   }
 
@@ -35,7 +36,8 @@ export default function ProductFiltersComponent({ filters, onFiltersChange }: Pr
     filters.category || 
     filters.subcategory || 
     filters.isNewProduct !== undefined || 
-    filters.inStock !== undefined
+    filters.inStock !== undefined ||
+    filters.isActive === false // Only consider it an active filter when showing inactive products
   )
 
   return (
@@ -69,6 +71,40 @@ export default function ProductFiltersComponent({ filters, onFiltersChange }: Pr
           Filters
         </button>
       </form>
+
+      {/* Show Inactive Products Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-700">Show:</span>
+            <div className="flex items-center space-x-1">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="productStatus"
+                  checked={filters.isActive === true || filters.isActive === undefined}
+                  onChange={() => handleFilterChange('isActive', true)}
+                  className="form-radio h-4 w-4 text-primary-600"
+                />
+                <span className="ml-1 text-sm text-gray-700">Active products</span>
+              </label>
+              <label className="flex items-center cursor-pointer ml-4">
+                <input
+                  type="radio"
+                  name="productStatus"
+                  checked={filters.isActive === false}
+                  onChange={() => handleFilterChange('isActive', false)}
+                  className="form-radio h-4 w-4 text-primary-600"
+                />
+                <span className="ml-1 text-sm text-gray-700">Inactive products</span>
+              </label>
+            </div>
+          </div>
+          <span className="text-xs text-gray-500">
+            {filters.isActive === false ? 'Showing inactive products only' : 'Showing active products only'}
+          </span>
+        </div>
+      </div>
 
       {/* Advanced Filters */}
       {showAdvanced && (
@@ -273,6 +309,18 @@ export default function ProductFiltersComponent({ filters, onFiltersChange }: Pr
                 <button
                   onClick={() => handleFilterChange('isNewProduct', undefined)}
                   className="ml-1 text-purple-600 hover:text-purple-800"
+                >
+                  <XMarkIcon className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.isActive === false && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                Inactive Products Only
+                <button
+                  onClick={() => handleFilterChange('isActive', undefined)}
+                  className="ml-1 text-red-600 hover:text-red-800"
                 >
                   <XMarkIcon className="w-3 h-3" />
                 </button>

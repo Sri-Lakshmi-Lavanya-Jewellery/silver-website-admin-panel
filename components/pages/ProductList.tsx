@@ -16,6 +16,7 @@ interface ProductListProps {
   onEdit: (product: Product) => void
   onDelete: (id: string) => void
   onToggleStock: (id: string, inStock: boolean) => void
+  onToggleActive?: (id: string, isActive: boolean) => void
   onFiltersChange: (filters: any) => void
   onView: (product: Product) => void
 }
@@ -27,6 +28,7 @@ export default function ProductList({
   onEdit, 
   onDelete, 
   onToggleStock, 
+  onToggleActive,
   onFiltersChange,
   onView 
 }: ProductListProps) {
@@ -60,6 +62,7 @@ export default function ProductList({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleStock={onToggleStock}
+              onToggleActive={onToggleActive}
               onView={onView}
             />
           ))}
@@ -120,14 +123,20 @@ interface ProductCardProps {
   onEdit: (product: Product) => void
   onDelete: (id: string) => void
   onToggleStock: (id: string, inStock: boolean) => void
+  onToggleActive?: (id: string, isActive: boolean) => void
   onView: (product: Product) => void
 }
 
-function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: ProductCardProps) {
+function ProductCard({ product, onEdit, onDelete, onToggleStock, onToggleActive, onView }: ProductCardProps) {
   const mainImage = product.images?.[0] || '/placeholder-product.jpg'
+  const isInactive = product.isActive === false
   
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${
+      isInactive 
+        ? 'border-red-200 opacity-75' 
+        : 'border-gray-200'
+    }`}>
       {/* Product Image */}
       <div 
         className="relative h-48 bg-gray-100 cursor-pointer"
@@ -137,7 +146,7 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
           src={mainImage}
           alt={product.title}
           fill
-          className="object-cover"
+          className={`object-cover ${isInactive ? 'opacity-60' : ''}`}
           onError={(e) => {
             const target = e.target as HTMLImageElement
             target.src = '/placeholder-product.jpg'
@@ -148,7 +157,12 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
             New
           </div>
         )}
-        <div className={`absolute top-2 left-2 text-xs px-2 py-1 rounded-full ${
+        {isInactive && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+            Inactive
+          </div>
+        )}
+        <div className={`absolute ${isInactive ? 'top-8' : 'top-2'} left-2 text-xs px-2 py-1 rounded-full ${
           product.inStock 
             ? 'bg-green-100 text-green-800' 
             : 'bg-red-100 text-red-800'
@@ -160,10 +174,13 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
       {/* Product Info */}
       <div className="p-4">
         <h3 
-          className="font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer hover:text-primary-600"
+          className={`font-medium mb-2 line-clamp-2 cursor-pointer hover:text-primary-600 ${
+            isInactive ? 'text-gray-500' : 'text-gray-900'
+          }`}
           onClick={() => onView(product)}
         >
           {product.title}
+          {isInactive && <span className="text-red-500 text-xs ml-2">(Inactive)</span>}
         </h3>
         <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
           <span className="capitalize">{getCategoryDisplayName(product.category)}</span>
@@ -177,13 +194,14 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          {/* Stock Toggle */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               onToggleStock(product.id, !product.inStock)
             }}
-            className={`text-xs px-3 py-1 rounded-full transition-colors ${
+            className={`w-full text-xs px-3 py-1 rounded-full transition-colors ${
               product.inStock
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                 : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -191,8 +209,26 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
           >
             {product.inStock ? 'Mark Out of Stock' : 'Mark In Stock'}
           </button>
+
+          {/* Active Toggle */}
+          {onToggleActive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleActive(product.id, !isInactive)
+              }}
+              className={`w-full text-xs px-3 py-1 rounded-full transition-colors ${
+                isInactive
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+              }`}
+            >
+              {isInactive ? 'Activate Product' : 'Deactivate Product'}
+            </button>
+          )}
           
-          <div className="flex space-x-1">
+          {/* Action Icons */}
+          <div className="flex justify-center space-x-1">
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -213,16 +249,18 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onView }: Produ
             >
               <PencilIcon className="w-4 h-4" />
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(product.id)
-              }}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-              title="Delete product"
-            >
-              <TrashIcon className="w-4 h-4" />
-            </button>
+            {!isInactive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(product.id)
+                }}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Delete product"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

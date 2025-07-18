@@ -78,6 +78,22 @@ export default function ProductsPage() {
     }
   }
 
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    try {
+      // Assuming we have an API endpoint for updating product active status
+      // You may need to implement this in your API
+      const response = await productApi.updateProduct(id, { isActive })
+      if (response.success && response.data) {
+        toast.success(`Product ${isActive ? 'activated' : 'deactivated'} successfully`)
+        // Update the product in the list
+        setProducts(products.map(p => p.id === id ? response.data! : p))
+      }
+    } catch (error) {
+      toast.error('Failed to update product status')
+      console.error('Product active status update error:', error)
+    }
+  }
+
   const handleEdit = (product: Product) => {
     router.push(`/products/${product.id}/edit`)
   }
@@ -123,6 +139,7 @@ export default function ProductsPage() {
         onEdit={handleEdit}
         onDelete={handleDeleteProduct}
         onToggleStock={handleToggleStock}
+        onToggleActive={handleToggleActive}
         onFiltersChange={handleFiltersChange}
         onView={handleView}
       />

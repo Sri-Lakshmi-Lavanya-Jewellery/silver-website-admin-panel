@@ -64,6 +64,7 @@ const initialState: AppState = {
   productFilters: {
     page: 1,
     limit: 12,
+    isActive: true, // Default to showing only active products
   },
   productsPagination: {
     page: 1,

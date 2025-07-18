@@ -62,6 +62,7 @@ export interface ProductFilters {
   subcategory?: string
   isNewProduct?: boolean
   inStock?: boolean
+  isActive?: boolean
   search?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
