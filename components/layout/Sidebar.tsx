@@ -7,7 +7,8 @@ import {
   TagIcon, 
   ArchiveBoxIcon, 
   ChartBarIcon,
-  Cog6ToothIcon 
+  Cog6ToothIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Products', href: '/products', icon: CubeIcon, roles: ['admin', 'editor'] },
   { name: 'Categories', href: '/categories', icon: TagIcon, roles: ['admin', 'editor'] },
   { name: 'Inventory', href: '/inventory', icon: ArchiveBoxIcon, roles: ['admin', 'editor'] },
+  { name: 'Enquiries', href: '/enquiries', icon: EnvelopeIcon, roles: ['admin', 'editor'] },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, roles: ['admin', 'editor', 'viewer'] },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['admin'] },
 ]

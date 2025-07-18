@@ -209,3 +209,109 @@ export const getSubcategoryDisplayName = (subcategory: CategoryInfo | string | u
   if (typeof subcategory === 'string') return subcategory.replace('-', ' ')
   return ''
 }
+
+// Enquiry types
+export interface EnquiryResponse {
+  message: string
+  respondedBy?: User
+  respondedAt: string
+}
+
+export interface Enquiry {
+  id: string
+  customerName: string
+  customerEmail: string
+  customerPhone?: string
+  subject: string
+  message: string
+  type: 'general' | 'product' | 'order' | 'complaint' | 'suggestion' | 'other'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: 'pending' | 'in-progress' | 'resolved' | 'closed'
+  productId?: Product
+  responses: EnquiryResponse[]
+  assignedTo?: User
+  tags: string[]
+  isActive: boolean
+  resolvedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EnquiryFormData {
+  customerName: string
+  customerEmail: string
+  customerPhone?: string
+  subject: string
+  message: string
+  type: 'general' | 'product' | 'order' | 'complaint' | 'suggestion' | 'other'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: 'pending' | 'in-progress' | 'resolved' | 'closed'
+  productId?: string
+  assignedTo?: string
+  tags: string[]
+}
+
+export interface EnquiryFilters {
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  status?: 'pending' | 'in-progress' | 'resolved' | 'closed'
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  type?: 'general' | 'product' | 'order' | 'complaint' | 'suggestion' | 'other'
+  assignedTo?: string
+  customerEmail?: string
+  productId?: string
+  tags?: string
+  dateFrom?: string
+  dateTo?: string
+  search?: string
+  isActive?: boolean
+}
+
+export interface EnquiryStatistics {
+  total: number
+  pending: number
+  inProgress: number
+  resolved: number
+  closed: number
+  high: number
+  urgent: number
+}
+
+export interface BulkStatusUpdate {
+  enquiryIds: string[]
+  status: 'pending' | 'in-progress' | 'resolved' | 'closed'
+}
+
+export interface BulkUpdateResult {
+  updated: number
+  failed: string[]
+}
+
+export type EnquiryType = typeof ENQUIRY_TYPES[keyof typeof ENQUIRY_TYPES]
+export type EnquiryPriority = typeof ENQUIRY_PRIORITIES[keyof typeof ENQUIRY_PRIORITIES]
+export type EnquiryStatus = typeof ENQUIRY_STATUSES[keyof typeof ENQUIRY_STATUSES]
+
+export const ENQUIRY_TYPES = {
+  GENERAL: 'general',
+  PRODUCT: 'product',
+  ORDER: 'order',
+  COMPLAINT: 'complaint',
+  SUGGESTION: 'suggestion',
+  OTHER: 'other'
+} as const
+
+export const ENQUIRY_PRIORITIES = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  URGENT: 'urgent'
+} as const
+
+export const ENQUIRY_STATUSES = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in-progress',
+  RESOLVED: 'resolved',
+  CLOSED: 'closed'
+} as const

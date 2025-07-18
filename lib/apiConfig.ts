@@ -70,6 +70,21 @@ export const API_CONFIG = {
     CATEGORY_BY_ID: (id: string) => `/categories/${id}`,
     CATEGORY_PRODUCTS: (id: string) => `/categories/${id}/products`,
     
+    // Enquiries
+    ENQUIRIES: '/enquiries',
+    ENQUIRY_BY_ID: (id: string) => `/enquiries/${id}`,
+    ENQUIRY_BY_CUSTOMER: (email: string) => `/enquiries/customer/${encodeURIComponent(email)}`,
+    ENQUIRY_UPDATE_STATUS: (id: string) => `/enquiries/${id}/status`,
+    ENQUIRY_ADD_RESPONSE: (id: string) => `/enquiries/${id}/responses`,
+    ENQUIRY_ASSIGN: (id: string) => `/enquiries/${id}/assign`,
+    ENQUIRIES_BY_STATUS: (status: string) => `/enquiries/filter/status/${status}`,
+    ENQUIRIES_BY_PRIORITY: (priority: string) => `/enquiries/filter/priority/${priority}`,
+    ENQUIRIES_BY_TYPE: (type: string) => `/enquiries/filter/type/${type}`,
+    ENQUIRIES_ASSIGNED: (userId: string) => `/enquiries/assigned/${userId}`,
+    ENQUIRIES_STATISTICS: '/enquiries/statistics',
+    ENQUIRIES_RECENT: '/enquiries/recent',
+    ENQUIRIES_BULK_STATUS: '/enquiries/bulk/status',
+    
     // Image upload
     UPLOAD_IMAGE: '/upload/image',
     UPLOAD_MULTIPLE: '/upload/multiple-images',

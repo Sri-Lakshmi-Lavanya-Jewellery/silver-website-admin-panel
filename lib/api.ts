@@ -13,7 +13,13 @@ import {
   ImageUploadResponse,
   MultipleImageUploadResponse,
   BulkUpdateOperation,
-  BulkOperationResult
+  BulkOperationResult,
+  Enquiry,
+  EnquiryFormData,
+  EnquiryFilters,
+  EnquiryStatistics,
+  BulkStatusUpdate,
+  BulkUpdateResult
 } from '@/types'
 import { API_CONFIG } from './apiConfig'
 
@@ -517,5 +523,119 @@ export const apiDemo = {
     } catch (error) {
       return { status: 'error', message: apiUtils.handleError(error) }
     }
+  }
+}
+
+// Enquiry API
+export const enquiryApi = {
+  // Get all enquiries with filters
+  getEnquiries: async (filters: EnquiryFilters = {}): Promise<APIResponse<Enquiry[]>> => {
+    const queryParams = new URLSearchParams()
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value.toString())
+      }
+    })
+    
+    const queryString = queryParams.toString()
+    const endpoint = queryString ? `/enquiries?${queryString}` : '/enquiries'
+    
+    return apiRequest<Enquiry[]>(endpoint)
+  },
+
+  // Get enquiry by ID
+  getEnquiryById: async (id: string): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>(`/enquiries/${id}`)
+  },
+
+  // Get enquiries by customer email
+  getEnquiriesByCustomer: async (email: string, page = 1, limit = 10): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/customer/${encodeURIComponent(email)}?page=${page}&limit=${limit}`)
+  },
+
+  // Create new enquiry
+  createEnquiry: async (enquiryData: Partial<EnquiryFormData>): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>('/enquiries', {
+      method: 'POST',
+      body: JSON.stringify(enquiryData),
+    })
+  },
+
+  // Update enquiry
+  updateEnquiry: async (id: string, enquiryData: Partial<EnquiryFormData>): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>(`/enquiries/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(enquiryData),
+    })
+  },
+
+  // Update enquiry status
+  updateEnquiryStatus: async (id: string, status: string): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>(`/enquiries/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    })
+  },
+
+  // Add response to enquiry
+  addResponse: async (id: string, message: string, respondedBy?: string): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>(`/enquiries/${id}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ message, respondedBy }),
+    })
+  },
+
+  // Assign enquiry to user
+  assignEnquiry: async (id: string, userId: string): Promise<APIResponse<Enquiry>> => {
+    return apiRequest<Enquiry>(`/enquiries/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    })
+  },
+
+  // Delete enquiry (soft delete)
+  deleteEnquiry: async (id: string): Promise<APIResponse<null>> => {
+    return apiRequest<null>(`/enquiries/${id}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // Get enquiries by status
+  getEnquiriesByStatus: async (status: string): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/filter/status/${status}`)
+  },
+
+  // Get enquiries by priority
+  getEnquiriesByPriority: async (priority: string): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/filter/priority/${priority}`)
+  },
+
+  // Get enquiries by type
+  getEnquiriesByType: async (type: string): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/filter/type/${type}`)
+  },
+
+  // Get assigned enquiries
+  getAssignedEnquiries: async (userId: string): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/assigned/${userId}`)
+  },
+
+  // Get enquiry statistics
+  getEnquiryStatistics: async (): Promise<APIResponse<EnquiryStatistics>> => {
+    return apiRequest<EnquiryStatistics>('/enquiries/statistics')
+  },
+
+  // Get recent enquiries
+  getRecentEnquiries: async (limit = 5): Promise<APIResponse<Enquiry[]>> => {
+    return apiRequest<Enquiry[]>(`/enquiries/recent?limit=${limit}`)
+  },
+
+  // Bulk update status
+  bulkUpdateStatus: async (data: BulkStatusUpdate): Promise<APIResponse<BulkUpdateResult>> => {
+    return apiRequest<BulkUpdateResult>('/enquiries/bulk/status', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 }
