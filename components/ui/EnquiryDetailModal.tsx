@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Enquiry, ENQUIRY_STATUSES } from '@/types'
 import { 
   XMarkIcon,
@@ -31,10 +32,76 @@ export default function EnquiryDetailModal({
   onAddResponse,
   onDelete
 }: EnquiryDetailModalProps) {
+  const router = useRouter()
   const [responseMessage, setResponseMessage] = useState('')
   const [isAddingResponse, setIsAddingResponse] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [localStatus, setLocalStatus] = useState<'pending' | 'in-progress' | 'resolved' | 'closed'>(enquiry.status)
+  const [productDetails, setProductDetails] = useState<any>(null)
+  const [loadingProduct, setLoadingProduct] = useState(false)
 
   if (!isOpen) return null
+
+  // Update local status when enquiry prop changes
+  useEffect(() => {
+    setLocalStatus(enquiry.status)
+  }, [enquiry.status])
+
+  // Fetch product details if we only have an ID
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (typeof enquiry.productId === 'string' && enquiry.productId && !productDetails && !loadingProduct) {
+        try {
+          setLoadingProduct(true)
+          const { productApi } = await import('@/lib/api')
+          const response = await productApi.getProduct(enquiry.productId)
+          if (response.success && response.data) {
+            setProductDetails(response.data)
+          }
+        } catch (error) {
+          console.error('Failed to fetch product details:', error)
+        } finally {
+          setLoadingProduct(false)
+        }
+      }
+    }
+
+    fetchProductDetails()
+  }, [enquiry.productId, productDetails, loadingProduct])
+
+  // Helper function to get the correct enquiry ID
+  const getEnquiryId = () => {
+    return enquiry.id || enquiry._id || ''
+  }
+
+  // Helper function to get product ID and details
+  const getProductInfo = () => {
+    if (!enquiry.productId) return null
+    
+    // Handle different cases of productId structure
+    let productId = ''
+    let productTitle = 'Unknown Product'
+    let productImages: string[] = []
+    
+    if (typeof enquiry.productId === 'string') {
+      // If productId is just a string ID
+      productId = enquiry.productId
+      // Use fetched product details if available
+      if (productDetails) {
+        productTitle = productDetails.title || 'Unknown Product'
+        productImages = productDetails.images || []
+      } else if (loadingProduct) {
+        productTitle = 'Loading product...'
+      }
+    } else if (typeof enquiry.productId === 'object') {
+      // If productId is a populated object
+      productId = enquiry.productId.id || enquiry.productId._id || ''
+      productTitle = enquiry.productId.title || 'Unknown Product'
+      productImages = enquiry.productId.images || []
+    }
+    
+    return { productId, productTitle, productImages }
+  }
 
   const handleAddResponse = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,10 +109,32 @@ export default function EnquiryDetailModal({
 
     try {
       setIsAddingResponse(true)
-      await onAddResponse(enquiry.id, responseMessage)
+      await onAddResponse(getEnquiryId(), responseMessage)
       setResponseMessage('')
     } finally {
       setIsAddingResponse(false)
+    }
+  }
+
+  const handleStatusChange = async (newStatus: string) => {
+    const validStatus = newStatus as 'pending' | 'in-progress' | 'resolved' | 'closed'
+    
+    try {
+      setIsUpdatingStatus(true)
+      setLocalStatus(validStatus) // Optimistic update for immediate UI feedback
+      await onUpdateStatus(getEnquiryId(), newStatus)
+    } catch (error) {
+      // Revert on error
+      setLocalStatus(enquiry.status)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleProductClick = () => {
+    const productInfo = getProductInfo()
+    if (productInfo?.productId) {
+      router.push(`/products/${productInfo.productId}`)
     }
   }
 
@@ -79,8 +168,8 @@ export default function EnquiryDetailModal({
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(enquiry.priority)}`}>
               {enquiry.priority}
             </span>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(enquiry.status)}`}>
-              {enquiry.status.replace('-', ' ')}
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(localStatus)}`}>
+              {localStatus.replace('-', ' ')}
             </span>
           </div>
           <button
@@ -136,16 +225,44 @@ export default function EnquiryDetailModal({
                 {enquiry.productId && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Related Product</label>
-                    <div className="flex items-center space-x-3 mt-1">
-                      {enquiry.productId.images?.[0] && (
-                        <img
-                          src={enquiry.productId.images[0]}
-                          alt={enquiry.productId.title}
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                      )}
-                      <span className="text-sm text-gray-900">{enquiry.productId.title}</span>
-                    </div>
+                    {loadingProduct ? (
+                      <div className="mt-1 p-2 bg-gray-50 rounded-md">
+                        <span className="text-sm text-gray-600">Loading product details...</span>
+                      </div>
+                    ) : getProductInfo()?.productId ? (
+                      <div 
+                        className="flex items-center space-x-3 mt-1 cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors"
+                        onClick={handleProductClick}
+                        title="Click to view product details"
+                      >
+                        {getProductInfo()?.productImages?.[0] && (
+                          <img
+                            src={getProductInfo()!.productImages[0]}
+                            alt={getProductInfo()!.productTitle}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-sm text-blue-600 hover:text-blue-800 font-medium underline">
+                            {getProductInfo()?.productTitle}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ID: {getProductInfo()?.productId} • Click to view product
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1 p-2 bg-yellow-50 rounded-md">
+                        <span className="text-sm text-yellow-800">
+                          Product reference found but details unavailable
+                        </span>
+                        {typeof enquiry.productId === 'string' && (
+                          <div className="text-xs text-yellow-600 mt-1">
+                            Product ID: {enquiry.productId}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 {enquiry.tags.length > 0 && (
@@ -218,9 +335,10 @@ export default function EnquiryDetailModal({
           <div className="flex items-center justify-between">
             <div className="flex space-x-2">
               <select
-                value={enquiry.status}
-                onChange={(e) => onUpdateStatus(enquiry.id, e.target.value)}
-                className="form-select text-sm"
+                value={localStatus}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                disabled={isUpdatingStatus}
+                className={`form-select text-sm ${isUpdatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {Object.entries(ENQUIRY_STATUSES).map(([key, value]) => (
                   <option key={value} value={value}>
@@ -228,11 +346,17 @@ export default function EnquiryDetailModal({
                   </option>
                 ))}
               </select>
+              {isUpdatingStatus && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                  Updating...
+                </div>
+              )}
             </div>
             
             <div className="flex space-x-3">
               <button
-                onClick={() => onDelete(enquiry.id)}
+                onClick={() => onDelete(getEnquiryId())}
                 className="px-4 py-2 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50"
               >
                 Delete

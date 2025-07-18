@@ -69,10 +69,19 @@ export default function EnquiriesPage() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
+      // Ensure we have a valid ID
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.updateEnquiryStatus(id, status)
       if (response.success && response.data) {
         toast.success(`Enquiry status updated to ${status}`)
-        setEnquiries(enquiries.map(e => e.id === id ? response.data! : e))
+        // Update the enquiry in the list using both id and _id for compatibility
+        setEnquiries(enquiries.map(e => 
+          (e.id === id || e._id === id) ? response.data! : e
+        ))
         fetchStatistics() // Refresh stats
       }
     } catch (error) {
@@ -83,10 +92,17 @@ export default function EnquiriesPage() {
 
   const handleAssignEnquiry = async (id: string, userId: string) => {
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.assignEnquiry(id, userId)
       if (response.success && response.data) {
         toast.success('Enquiry assigned successfully')
-        setEnquiries(enquiries.map(e => e.id === id ? response.data! : e))
+        setEnquiries(enquiries.map(e => 
+          (e.id === id || e._id === id) ? response.data! : e
+        ))
       }
     } catch (error) {
       toast.error('Failed to assign enquiry')
@@ -96,10 +112,17 @@ export default function EnquiriesPage() {
 
   const handleAddResponse = async (id: string, message: string) => {
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.addResponse(id, message)
       if (response.success && response.data) {
         toast.success('Response added successfully')
-        setEnquiries(enquiries.map(e => e.id === id ? response.data! : e))
+        setEnquiries(enquiries.map(e => 
+          (e.id === id || e._id === id) ? response.data! : e
+        ))
       }
     } catch (error) {
       toast.error('Failed to add response')
@@ -113,10 +136,15 @@ export default function EnquiriesPage() {
     }
 
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.deleteEnquiry(id)
       if (response.success) {
         toast.success('Enquiry deleted successfully')
-        setEnquiries(enquiries.filter(e => e.id !== id))
+        setEnquiries(enquiries.filter(e => e.id !== id && e._id !== id))
         fetchStatistics() // Refresh stats
       }
     } catch (error) {

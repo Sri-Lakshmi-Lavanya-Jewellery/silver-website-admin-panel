@@ -219,6 +219,7 @@ export interface EnquiryResponse {
 
 export interface Enquiry {
   id: string
+  _id?: string // For MongoDB compatibility
   customerName: string
   customerEmail: string
   customerPhone?: string
@@ -227,7 +228,7 @@ export interface Enquiry {
   type: 'general' | 'product' | 'order' | 'complaint' | 'suggestion' | 'other'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   status: 'pending' | 'in-progress' | 'resolved' | 'closed'
-  productId?: Product
+  productId?: Product & { _id?: string } // Support both id and _id
   responses: EnquiryResponse[]
   assignedTo?: User
   tags: string[]

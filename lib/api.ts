@@ -396,6 +396,37 @@ export const apiUtils = {
     }
     return 'An unexpected error occurred'
   },
+
+  // Helper to get proper ID from object (handles both id and _id)
+  getId: (obj: any): string => {
+    return obj?.id || obj?._id || ''
+  },
+
+  // Helper to normalize enquiry data
+  normalizeEnquiry: (enquiry: any): any => {
+    const normalized = {
+      ...enquiry,
+      id: enquiry.id || enquiry._id
+    }
+
+    // Handle productId normalization more robustly
+    if (enquiry.productId) {
+      if (typeof enquiry.productId === 'string') {
+        // If productId is just a string, keep it as is
+        normalized.productId = { id: enquiry.productId }
+      } else if (typeof enquiry.productId === 'object') {
+        // If productId is an object (populated product)
+        normalized.productId = {
+          ...enquiry.productId,
+          id: enquiry.productId.id || enquiry.productId._id || '',
+          title: enquiry.productId.title || 'Unknown Product',
+          images: enquiry.productId.images || []
+        }
+      }
+    }
+
+    return normalized
+  }
 }
 
 // Bulk Operations API (Admin/Manager Only)
@@ -541,57 +572,113 @@ export const enquiryApi = {
     const queryString = queryParams.toString()
     const endpoint = queryString ? `/enquiries?${queryString}` : '/enquiries'
     
-    return apiRequest<Enquiry[]>(endpoint)
+    const response = await apiRequest<Enquiry[]>(endpoint)
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = response.data.map(apiUtils.normalizeEnquiry)
+    }
+    
+    return response
   },
 
   // Get enquiry by ID
   getEnquiryById: async (id: string): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>(`/enquiries/${id}`)
+    const response = await apiRequest<Enquiry>(`/enquiries/${id}`)
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Get enquiries by customer email
   getEnquiriesByCustomer: async (email: string, page = 1, limit = 10): Promise<APIResponse<Enquiry[]>> => {
-    return apiRequest<Enquiry[]>(`/enquiries/customer/${encodeURIComponent(email)}?page=${page}&limit=${limit}`)
+    const response = await apiRequest<Enquiry[]>(`/enquiries/customer/${encodeURIComponent(email)}?page=${page}&limit=${limit}`)
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = response.data.map(apiUtils.normalizeEnquiry)
+    }
+    
+    return response
   },
 
   // Create new enquiry
   createEnquiry: async (enquiryData: Partial<EnquiryFormData>): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>('/enquiries', {
+    const response = await apiRequest<Enquiry>('/enquiries', {
       method: 'POST',
       body: JSON.stringify(enquiryData),
     })
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Update enquiry
   updateEnquiry: async (id: string, enquiryData: Partial<EnquiryFormData>): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>(`/enquiries/${id}`, {
+    const response = await apiRequest<Enquiry>(`/enquiries/${id}`, {
       method: 'PUT',
       body: JSON.stringify(enquiryData),
     })
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Update enquiry status
   updateEnquiryStatus: async (id: string, status: string): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>(`/enquiries/${id}/status`, {
+    const response = await apiRequest<Enquiry>(`/enquiries/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Add response to enquiry
   addResponse: async (id: string, message: string, respondedBy?: string): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>(`/enquiries/${id}/responses`, {
+    const response = await apiRequest<Enquiry>(`/enquiries/${id}/responses`, {
       method: 'POST',
       body: JSON.stringify({ message, respondedBy }),
     })
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Assign enquiry to user
   assignEnquiry: async (id: string, userId: string): Promise<APIResponse<Enquiry>> => {
-    return apiRequest<Enquiry>(`/enquiries/${id}/assign`, {
+    const response = await apiRequest<Enquiry>(`/enquiries/${id}/assign`, {
       method: 'POST',
       body: JSON.stringify({ userId }),
     })
+    
+    // Normalize enquiry data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeEnquiry(response.data)
+    }
+    
+    return response
   },
 
   // Delete enquiry (soft delete)

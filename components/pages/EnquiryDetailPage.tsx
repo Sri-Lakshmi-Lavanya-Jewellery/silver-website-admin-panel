@@ -43,6 +43,11 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.updateEnquiryStatus(id, status)
       if (response.success && response.data) {
         toast.success(`Enquiry status updated to ${status}`)
@@ -56,6 +61,11 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
 
   const handleAssignEnquiry = async (id: string, userId: string) => {
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.assignEnquiry(id, userId)
       if (response.success && response.data) {
         toast.success('Enquiry assigned successfully')
@@ -69,6 +79,11 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
 
   const handleAddResponse = async (id: string, message: string) => {
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.addResponse(id, message)
       if (response.success && response.data) {
         toast.success('Response added successfully')
@@ -86,6 +101,11 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
     }
 
     try {
+      if (!id) {
+        toast.error('Invalid enquiry ID')
+        return
+      }
+
       const response = await enquiryApi.deleteEnquiry(id)
       if (response.success) {
         toast.success('Enquiry deleted successfully')

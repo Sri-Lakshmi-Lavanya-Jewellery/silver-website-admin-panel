@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Enquiry, EnquiryFilters, ENQUIRY_STATUSES } from '@/types'
 import { 
   ClockIcon, 
@@ -56,6 +56,11 @@ export default function EnquiryList({
     )
   }
 
+  // Helper function to get enquiry ID
+  const getEnquiryId = (enquiry: Enquiry) => {
+    return enquiry.id || enquiry._id || ''
+  }
+
   const handlePageChange = (page: number) => {
     onFiltersChange({ page })
   }
@@ -72,7 +77,7 @@ export default function EnquiryList({
     if (selectedEnquiries.length === enquiries.length) {
       setSelectedEnquiries([])
     } else {
-      setSelectedEnquiries(enquiries.map(e => e.id))
+      setSelectedEnquiries(enquiries.map(e => getEnquiryId(e)))
     }
   }
 
@@ -164,10 +169,10 @@ export default function EnquiryList({
           <div className="divide-y divide-gray-200">
             {enquiries.map((enquiry) => (
               <EnquiryCard
-                key={enquiry.id}
+                key={getEnquiryId(enquiry)}
                 enquiry={enquiry}
-                isSelected={selectedEnquiries.includes(enquiry.id)}
-                onSelect={() => handleSelectEnquiry(enquiry.id)}
+                isSelected={selectedEnquiries.includes(getEnquiryId(enquiry))}
+                onSelect={() => handleSelectEnquiry(getEnquiryId(enquiry))}
                 onView={() => {
                   setSelectedEnquiry(enquiry)
                   setShowDetailModal(true)
@@ -271,6 +276,32 @@ function EnquiryCard({
   getTypeColor
 }: EnquiryCardProps) {
   const [showActions, setShowActions] = useState(false)
+  const [localStatus, setLocalStatus] = useState(enquiry.status)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+
+  // Update local status when enquiry prop changes
+  useEffect(() => {
+    setLocalStatus(enquiry.status)
+  }, [enquiry.status])
+
+  // Helper function to get enquiry ID
+  const getEnquiryId = () => {
+    return enquiry.id || enquiry._id || ''
+  }
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    try {
+      setIsUpdatingStatus(true)
+      setLocalStatus(newStatus as 'pending' | 'in-progress' | 'resolved' | 'closed')
+      await onUpdateStatus(getEnquiryId(), newStatus)
+    } catch (error) {
+      // Revert on error
+      setLocalStatus(enquiry.status)
+    } finally {
+      setIsUpdatingStatus(false)
+      setShowActions(false)
+    }
+  }
 
   return (
     <div className={`p-6 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}>
@@ -294,8 +325,11 @@ function EnquiryCard({
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(enquiry.priority)}`}>
                 {enquiry.priority}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(enquiry.status)}`}>
-                {enquiry.status.replace('-', ' ')}
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(localStatus)}`}>
+                {localStatus.replace('-', ' ')}
+                {isUpdatingStatus && (
+                  <div className="ml-1 animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                )}
               </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(enquiry.type)}`}>
                 {enquiry.type}
@@ -325,18 +359,23 @@ function EnquiryCard({
                     {Object.entries(ENQUIRY_STATUSES).map(([key, value]) => (
                       <button
                         key={value}
-                        onClick={() => {
-                          onUpdateStatus(enquiry.id, value)
-                          setShowActions(false)
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => handleStatusUpdate(value)}
+                        disabled={isUpdatingStatus}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                       >
-                        Mark as {key.replace('_', ' ').toLowerCase()}
+                        {isUpdatingStatus && localStatus === value ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600 mr-2"></div>
+                            Updating...
+                          </div>
+                        ) : (
+                          `Mark as ${key.replace('_', ' ').toLowerCase()}`
+                        )}
                       </button>
                     ))}
                     <button
                       onClick={() => {
-                        onDelete(enquiry.id)
+                        onDelete(getEnquiryId())
                         setShowActions(false)
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
