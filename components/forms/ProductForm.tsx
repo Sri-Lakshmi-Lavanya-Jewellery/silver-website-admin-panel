@@ -34,6 +34,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     subcategory: '',
     weight: '',
     inStock: true,
+    isActive: true,
     models: {
       'Model 1': {
         'standard': {
@@ -59,19 +60,43 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
-        // Get hierarchy and flatten to get only parent categories
         const response = await categoryApi.getCategoryHierarchy()
         if (response.success && response.data && response.data.length > 0) {
           // Filter only root categories (categories without parentId)
-          const rootCategories = response.data.filter(cat => {
-            // Handle both API formats: parentCategory (API) and parentId (normalized)
+          let rootCategories = response.data.filter(cat => {
             const hasParent = (cat as any).parentCategory || cat.parentId
             return !hasParent
           })
+          // If editing, ensure product's category is present
+          if (product && product.category) {
+            console.log('Checking if product category is in loaded categories')
+            const prodCatId = typeof product.category === 'object' ? (product.category.id || product.category._id) : product.category
+            console.log('Product category ID:', prodCatId)
+            console.log('Loaded root categories:', rootCategories.map(c => ({ id: c.id, _id: c._id, name: c.name })))
+            
+            const found = rootCategories.some(cat => (cat.id === prodCatId) || (cat._id === prodCatId))
+            console.log('Category found in loaded categories:', found)
+            
+            if (!found && typeof product.category === 'object') {
+              console.log('Adding product category to dropdown options:', product.category)
+              rootCategories = [
+                {
+                  ...product.category,
+                  _id: product.category.id || product.category._id || '',
+                  id: product.category.id || product.category._id || '',
+                  isActive: (product.category as any).isActive ?? true,
+                  createdAt: (product.category as any).createdAt ?? '',
+                  updatedAt: (product.category as any).updatedAt ?? '',
+                },
+                ...rootCategories
+              ]
+            }
+          }
           setCategories(rootCategories)
-          // Set first category as default if not set
-          if (!formData.category && rootCategories.length > 0) {
-            setFormData(prev => ({ ...prev, category: rootCategories[0].id || '' }))
+          console.log('Final categories set:', rootCategories.map(c => ({ id: c.id, _id: c._id, name: c.name })))
+          
+          if (!formData.category && rootCategories.length > 0 && !product) {
+            setFormData(prev => ({ ...prev, category: rootCategories[0].id || rootCategories[0]._id || '' }))
           }
         }
       } catch (error) {
@@ -127,13 +152,23 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
 
   useEffect(() => {
     if (product) {
+      console.log('Product loaded for editing:', product)
+      console.log('Product category:', product.category)
+      console.log('Product subcategory:', product.subcategory)
+      
+      const categoryId = typeof product.category === 'object' ? (product.category.id || product.category._id || '') : (product.category || '')
+      const subcategoryId = typeof product.subcategory === 'object' ? (product.subcategory.id || product.subcategory._id || '') : (product.subcategory || '')
+      
+      console.log('Extracted category ID:', categoryId)
+      console.log('Extracted subcategory ID:', subcategoryId)
+      
       setFormData({
         title: product.title,
         description: product.description,
         images: product.images || [],
         isNewProduct: product.isNewProduct,
-        category: typeof product.category === 'object' ? product.category.id : product.category,
-        subcategory: typeof product.subcategory === 'object' ? product.subcategory.id : product.subcategory,
+        category: categoryId,
+        subcategory: subcategoryId,
         weight: product.weight,
         inStock: product.inStock,
         isActive: product.isActive,
@@ -182,8 +217,13 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submitted with data:', formData)
+    console.log('Validation passed:', validateForm())
     if (validateForm()) {
+      console.log('Calling onSubmit with:', formData)
       onSubmit(formData)
+    } else {
+      console.log('Validation errors:', errors)
     }
   }
 
@@ -331,7 +371,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                     {loadingCategories ? 'Loading categories...' : 'Select a category'}
                   </option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <option key={category.id || category._id} value={category.id || category._id}>
                       {category.name}
                     </option>
                   ))}
@@ -355,7 +395,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                       {loadingSubcategories ? 'Loading subcategories...' : 'Select a subcategory (optional)'}
                     </option>
                     {subcategories.map((subcategory) => (
-                      <option key={subcategory.id} value={subcategory.id}>
+                      <option key={subcategory.id || subcategory._id} value={subcategory.id || subcategory._id}>
                         {subcategory.name}
                       </option>
                     ))}
@@ -407,6 +447,16 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
                     className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">In Stock</span>
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Active Product</span>
                 </label>
               </div>
             </div>
@@ -538,7 +588,8 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => console.log('Submit button clicked')}
           >
             {product ? 'Update Product' : 'Create Product'}
           </button>

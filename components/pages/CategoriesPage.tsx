@@ -53,7 +53,8 @@ export default function CategoriesPage() {
     
     const normalize = (cat: any): Category => {
       const normalized: Category = {
-        id: cat.id,
+        id: cat.id || cat._id || '',
+        _id: cat._id || cat.id,
         name: cat.name,
         description: cat.description || undefined,
         thumbnail: cat.thumbnail || undefined,
@@ -88,6 +89,7 @@ export default function CategoriesPage() {
   }
 
   const handleEditCategory = (category: Category) => {
+    console.log('Editing category:', category)
     setEditingCategory(category)
     setParentForSubcategory(null)
     setShowForm(true)
@@ -262,7 +264,7 @@ export default function CategoriesPage() {
           id: '',
           name: '',
           description: '',
-          parentId: parentForSubcategory.id,
+          parentId: parentForSubcategory._id || parentForSubcategory.id,
           isActive: true,
           sortOrder: 0,
           createdAt: '',

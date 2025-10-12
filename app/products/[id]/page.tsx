@@ -65,6 +65,26 @@ export default function ProductDetailPage() {
     }
   }
 
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    try {
+      // Try the specific endpoint first, fallback to general update
+      let response
+      try {
+        response = await productApi.updateActiveStatus(id, isActive)
+      } catch (error) {
+        // Fallback to general update if specific endpoint doesn't exist
+        response = await productApi.updateProduct(id, { isActive })
+      }
+      
+      if (response.success && response.data) {
+        setProduct(response.data)
+        toast.success(`Product ${isActive ? 'activated' : 'deactivated'} successfully`)
+      }
+    } catch (error) {
+      toast.error('Failed to update product status')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -94,6 +114,7 @@ export default function ProductDetailPage() {
       onEdit={handleEdit}
       onDelete={handleDelete}
       onToggleStock={handleToggleStock}
+      onToggleActive={handleToggleActive}
     />
   )
 }

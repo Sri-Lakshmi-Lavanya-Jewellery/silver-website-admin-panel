@@ -8,7 +8,7 @@ export interface Product {
   subcategory: CategoryInfo
   weight: string
   inStock: boolean
-  isActive?: boolean
+  isActive: boolean
   models: Record<string, Record<string, ProductDimension>>
   createdAt: string
   updatedAt: string
@@ -17,6 +17,7 @@ export interface Product {
 
 export interface CategoryInfo {
   id: string
+  _id?: string // For MongoDB compatibility
   name: string
   slug: string
   description?: string
@@ -39,7 +40,7 @@ export interface ProductFormData {
   subcategory: string
   weight: string
   inStock: boolean
-  isActive?: boolean
+  isActive: boolean
   models: Record<string, Record<string, ProductDimension>>
 }
 
@@ -134,6 +135,7 @@ export interface RegisterRequest {
 // Category types
 export interface Category {
   id: string
+  _id?: string // For MongoDB compatibility
   name: string
   description?: string
   thumbnail?: string | null

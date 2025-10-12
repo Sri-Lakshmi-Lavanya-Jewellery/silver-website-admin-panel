@@ -83,7 +83,7 @@ export default function CategoryForm({
 
       let response
       if (category) {
-        response = await categoryApi.updateCategory(category.id, categoryData)
+        response = await categoryApi.updateCategory(category._id, categoryData)
       } else {
         response = await categoryApi.createCategory(categoryData)
       }
@@ -207,7 +207,7 @@ export default function CategoryForm({
               >
                 <option value="">Select parent category (optional)</option>
                 {parentCategories
-                  .filter(cat => !category || cat.id !== category.id)
+                  .filter(cat => !category || cat.id !== category._id)
                   .map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}

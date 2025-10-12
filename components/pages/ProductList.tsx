@@ -215,7 +215,7 @@ function ProductCard({ product, onEdit, onDelete, onToggleStock, onToggleActive,
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onToggleActive(product.id, !isInactive)
+                onToggleActive(product.id, isInactive ? true : false)
               }}
               className={`w-full text-xs px-3 py-1 rounded-full transition-colors ${
                 isInactive

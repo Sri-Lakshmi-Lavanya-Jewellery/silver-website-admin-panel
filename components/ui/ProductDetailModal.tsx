@@ -11,6 +11,7 @@ interface ProductDetailModalProps {
   onEdit: (product: Product) => void
   onDelete: (id: string) => void
   onToggleStock: (id: string, inStock: boolean) => void
+  onToggleActive?: (id: string, isActive: boolean) => void
 }
 
 export default function ProductDetailModal({ 
@@ -18,7 +19,8 @@ export default function ProductDetailModal({
   onClose, 
   onEdit, 
   onDelete, 
-  onToggleStock 
+  onToggleStock,
+  onToggleActive 
 }: ProductDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   
@@ -181,6 +183,18 @@ export default function ProductDetailModal({
                 >
                   Mark as {product.inStock ? 'Out of Stock' : 'In Stock'}
                 </button>
+                {onToggleActive && (
+                  <button
+                    onClick={() => onToggleActive(product.id, !product.isActive)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      product.isActive
+                        ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {product.isActive ? 'Deactivate' : 'Activate'}
+                  </button>
+                )}
                 <button
                   onClick={() => onEdit(product)}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"

@@ -36,6 +36,11 @@ export default function CategoryList({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null)
 
+  // Helper function to get category ID
+  const getCategoryId = (category: Category): string => {
+    return category.id || category._id || ''
+  }
+
   console.log('CategoryList received categories:', categories.map(c => ({
     name: c.name,
     hasChildren: !!(c.children && c.children.length > 0),
@@ -57,9 +62,10 @@ export default function CategoryList({
       return
     }
 
-    setDeletingCategory(category.id)
+    const categoryId = getCategoryId(category)
+    setDeletingCategory(categoryId)
     try {
-      const response = await categoryApi.deleteCategory(category.id)
+      const response = await categoryApi.deleteCategory(categoryId)
       if (response.success) {
         toast.success('Category deleted successfully')
         onDelete(category)
@@ -76,7 +82,8 @@ export default function CategoryList({
 
   const handleToggleActive = async (category: Category) => {
     try {
-      const response = await categoryApi.updateCategory(category.id, {
+      const categoryId = getCategoryId(category)
+      const response = await categoryApi.updateCategory(categoryId, {
         isActive: !category.isActive
       })
       if (response.success && response.data) {
@@ -93,8 +100,9 @@ export default function CategoryList({
 
   const renderCategory = (category: Category, level: number = 0) => {
     const hasChildren = category.children && category.children.length > 0
-    const isExpanded = expandedCategories.has(category.id)
-    const isDeleting = deletingCategory === category.id
+    const categoryId = getCategoryId(category)
+    const isExpanded = expandedCategories.has(categoryId)
+    const isDeleting = deletingCategory === categoryId
 
     console.log(`Rendering category ${category.name} at level ${level}:`, {
       hasChildren,
@@ -103,7 +111,7 @@ export default function CategoryList({
     })
 
     return (
-      <div key={category.id} className="border border-gray-200 rounded-lg mb-2">
+      <div key={categoryId} className="border border-gray-200 rounded-lg mb-2">
         <div className="p-4 bg-white hover:bg-gray-50 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -119,7 +127,7 @@ export default function CategoryList({
               {/* Expand/Collapse Button */}
               {hasChildren ? (
                 <button
-                  onClick={() => toggleExpanded(category.id)}
+                  onClick={() => toggleExpanded(categoryId)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   {isExpanded ? (
@@ -158,7 +166,7 @@ export default function CategoryList({
                   )}
                   <div className="flex items-center space-x-4 mt-1">
                     <span className="text-xs text-gray-500">
-                      ID: {category.id}
+                      ID: {categoryId}
                     </span>
                     <span className="text-xs text-gray-500">
                       Sort: {category.sortOrder || 0}

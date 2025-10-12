@@ -29,11 +29,16 @@ export default function BulkCategoryOperations({
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<{ id: string; name: string; success: boolean; message: string }[]>([])
 
+  // Helper function to get category ID
+  const getCategoryId = (category: Category): string => {
+    return category.id || category._id || ''
+  }
+
   const handleSelectAll = () => {
     if (selectedCategories.length === categories.length) {
       setSelectedCategories([])
     } else {
-      setSelectedCategories(categories.map(cat => cat.id))
+      setSelectedCategories(categories.map(cat => getCategoryId(cat)))
     }
   }
 
@@ -167,15 +172,17 @@ export default function BulkCategoryOperations({
                 </div>
 
                 <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                  {categories.map((category) => (
+                  {categories.map((category) => {
+                    const categoryId = getCategoryId(category)
+                    return (
                     <label
-                      key={category.id}
+                      key={categoryId}
                       className="flex items-center p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={selectedCategories.includes(category.id)}
-                        onChange={() => handleSelectCategory(category.id)}
+                        checked={selectedCategories.includes(categoryId)}
+                        onChange={() => handleSelectCategory(categoryId)}
                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                       />
                       <div className="ml-3 flex-1">
@@ -196,7 +203,7 @@ export default function BulkCategoryOperations({
                         )}
                       </div>
                     </label>
-                  ))}
+                  )})}
                 </div>
               </div>
             </>

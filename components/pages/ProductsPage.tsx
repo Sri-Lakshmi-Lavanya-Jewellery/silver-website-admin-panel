@@ -80,9 +80,15 @@ export default function ProductsPage() {
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
-      // Assuming we have an API endpoint for updating product active status
-      // You may need to implement this in your API
-      const response = await productApi.updateProduct(id, { isActive })
+      // Try the specific endpoint first, fallback to general update
+      let response
+      try {
+        response = await productApi.updateActiveStatus(id, isActive)
+      } catch (error) {
+        // Fallback to general update if specific endpoint doesn't exist
+        response = await productApi.updateProduct(id, { isActive })
+      }
+      
       if (response.success && response.data) {
         toast.success(`Product ${isActive ? 'activated' : 'deactivated'} successfully`)
         // Update the product in the list

@@ -142,12 +142,26 @@ export const productApi = {
     const queryString = params.toString()
     const endpoint = `/products${queryString ? `?${queryString}` : ''}`
     
-    return apiRequest<Product[]>(endpoint)
+    const response = await apiRequest<Product[]>(endpoint)
+    
+    // Normalize product data
+    if (response.success && response.data) {
+      response.data = response.data.map(apiUtils.normalizeProduct)
+    }
+    
+    return response
   },
 
   // Get single product
   getProduct: async (id: string): Promise<APIResponse<Product>> => {
-    return apiRequest<Product>(`/products/${id}`)
+    const response = await apiRequest<Product>(`/products/${id}`)
+    
+    // Normalize product data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeProduct(response.data)
+    }
+    
+    return response
   },
 
   // Create product
@@ -163,10 +177,21 @@ export const productApi = {
 
   // Update product
   updateProduct: async (id: string, productData: Partial<ProductFormData>): Promise<APIResponse<Product>> => {
-    return apiRequest<Product>(`/products/${id}`, {
+    console.log('API updateProduct called with:', { id, productData })
+    
+    const response = await apiRequest<Product>(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(productData),
     })
+    
+    console.log('API updateProduct response:', response)
+    
+    // Normalize product data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeProduct(response.data)
+    }
+    
+    return response
   },
 
   // Delete product
@@ -178,10 +203,32 @@ export const productApi = {
 
   // Update stock status
   updateStock: async (id: string, inStock: boolean): Promise<APIResponse<Product>> => {
-    return apiRequest<Product>(`/products/${id}/stock`, {
+    const response = await apiRequest<Product>(`/products/${id}/stock`, {
       method: 'PATCH',
       body: JSON.stringify({ inStock }),
     })
+    
+    // Normalize product data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeProduct(response.data)
+    }
+    
+    return response
+  },
+
+  // Update active status
+  updateActiveStatus: async (id: string, isActive: boolean): Promise<APIResponse<Product>> => {
+    const response = await apiRequest<Product>(`/products/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    })
+    
+    // Normalize product data
+    if (response.success && response.data) {
+      response.data = apiUtils.normalizeProduct(response.data)
+    }
+    
+    return response
   },
 
   // Get products by category
@@ -235,7 +282,14 @@ export const productApi = {
 export const categoryApi = {
   // Get all categories
   getCategories: async (includeInactive: boolean = false): Promise<APIResponse<Category[]>> => {
-    return apiRequest<Category[]>(`/categories?includeInactive=${includeInactive}`)
+    const response = await apiRequest<Category[]>(`/categories?includeInactive=${includeInactive}`)
+    
+    // Normalize category data
+    if (response.success && response.data) {
+      response.data = response.data.map(apiUtils.normalizeCategory)
+    }
+    
+    return response
   },
 
   getTopLevelCategories : async (includeInactive: boolean = false): Promise<APIResponse<Category[]>> => {
@@ -426,6 +480,24 @@ export const apiUtils = {
     }
 
     return normalized
+  },
+
+  // Helper to normalize category data
+  normalizeCategory: (category: any): any => {
+    return {
+      ...category,
+      id: category.id || category._id || '',
+      _id: category._id || category.id
+    }
+  },
+
+  // Helper to normalize product data
+  normalizeProduct: (product: any): any => {
+    return {
+      ...product,
+      id: product.id || product._id || '',
+      isActive: product.isActive !== undefined ? product.isActive : true // Default to active
+    }
   }
 }
 
@@ -506,6 +578,7 @@ export const apiDemo = {
     subcategory: 'deepam',
     weight: '25g',
     inStock: true,
+    isActive: true,
     models: {
       'Standard': {
         'medium': {

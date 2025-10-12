@@ -43,7 +43,7 @@ export default function CategoryDetailModal({
     
     try {
       setLoading(true)
-      const response = await categoryApi.getCategoryProducts(category.id, currentPage, 10)
+      const response = await categoryApi.getCategoryProducts(category._id, currentPage, 10)
       if (response.success && response.data) {
         setProducts(response.data.products)
         // If there's pagination info in the response, use it
@@ -205,7 +205,7 @@ export default function CategoryDetailModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {category.children.map((subcategory) => (
                     <div
-                      key={subcategory.id}
+                      key={subcategory._id}
                       className="bg-gray-50 rounded-lg p-3 border border-gray-200"
                     >
                       <div className="flex items-center space-x-3 mb-2">
