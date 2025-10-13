@@ -43,7 +43,7 @@ export default function CategoryDetailModal({
     
     try {
       setLoading(true)
-      const response = await categoryApi.getCategoryProducts(category._id, currentPage, 10)
+      const response = await categoryApi.getCategoryProducts(category.id, currentPage, 10)
       if (response.success && response.data) {
         setProducts(response.data.products)
         // If there's pagination info in the response, use it
