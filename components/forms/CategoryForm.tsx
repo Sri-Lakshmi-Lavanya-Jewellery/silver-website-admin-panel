@@ -83,7 +83,7 @@ export default function CategoryForm({
 
       let response
       if (category) {
-        response = await categoryApi.updateCategory(category._id, categoryData)
+        response = await categoryApi.updateCategory(category.id, categoryData)
       } else {
         response = await categoryApi.createCategory(categoryData)
       }
