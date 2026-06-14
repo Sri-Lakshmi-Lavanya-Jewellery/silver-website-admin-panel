@@ -217,13 +217,10 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted with data:', formData)
-    console.log('Validation passed:', validateForm())
+    // (was calling validateForm() twice — once just to log — which ran
+    // validation side-effects redundantly; now validated exactly once)
     if (validateForm()) {
-      console.log('Calling onSubmit with:', formData)
       onSubmit(formData)
-    } else {
-      console.log('Validation errors:', errors)
     }
   }
 
@@ -293,7 +290,6 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   }
 
   const updateModelImages = (modelName: string, dimensionKey: string, images: string[]) => {
-    console.log("Model image updation: ", modelName, dimensionKey, images);
     updateModelDimension(modelName, dimensionKey, 'images', images)
   }
 
@@ -589,7 +585,6 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
           <button
             type="submit"
             className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => console.log('Submit button clicked')}
           >
             {product ? 'Update Product' : 'Create Product'}
           </button>
