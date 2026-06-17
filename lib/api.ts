@@ -501,6 +501,27 @@ export const apiUtils = {
   }
 }
 
+// Site Content API (editable hero/banners/sections)
+export const contentApi = {
+  // List all sections with their current data (override-or-default).
+  list: async (): Promise<APIResponse<{ section: string; data: any }[]>> => {
+    return apiRequest<{ section: string; data: any }[]>('/content')
+  },
+  // Save a section's data.
+  updateSection: async (section: string, data: any): Promise<APIResponse<{ section: string; data: any }>> => {
+    return apiRequest<{ section: string; data: any }>(`/content/${section}`, {
+      method: 'PUT',
+      body: JSON.stringify({ data }),
+    })
+  },
+  // Revert a section to the built-in default.
+  resetSection: async (section: string): Promise<APIResponse<{ section: string; data: any }>> => {
+    return apiRequest<{ section: string; data: any }>(`/content/${section}/reset`, {
+      method: 'POST',
+    })
+  },
+}
+
 // Bulk Operations API (Admin/Manager Only)
 export const bulkApi = {
   // Bulk update products
