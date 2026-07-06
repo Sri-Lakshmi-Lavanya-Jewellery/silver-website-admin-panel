@@ -318,3 +318,26 @@ export const ENQUIRY_STATUSES = {
   RESOLVED: 'resolved',
   CLOSED: 'closed'
 } as const
+
+// Editable site-content types (homepage banners/sections)
+export interface HeroSlide {
+  image?: string
+  eyebrow?: string
+  title?: string
+  titleAccent?: string
+  subtitle?: string
+  cta?: string
+  ctaLink?: string
+}
+
+export interface Occasion {
+  icon?: string
+  label?: string
+  link?: string
+}
+
+export interface Testimonial {
+  quote?: string
+  name?: string
+  place?: string
+}

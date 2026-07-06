@@ -59,7 +59,6 @@ export default function EnquiryDetailModal({
             setProductDetails(response.data)
           }
         } catch (error) {
-          console.error('Failed to fetch product details:', error)
         } finally {
           setLoadingProduct(false)
         }
@@ -247,7 +246,7 @@ export default function EnquiryDetailModal({
                             {getProductInfo()?.productTitle}
                           </span>
                           <span className="text-xs text-gray-500">
-                            ID: {getProductInfo()?.productId} • Click to view product
+                            ID: {getProductInfo()?.productId} â€¢ Click to view product
                           </span>
                         </div>
                       </div>

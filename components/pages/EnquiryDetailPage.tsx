@@ -34,7 +34,6 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
       }
     } catch (error) {
       toast.error('Failed to load enquiry')
-      console.error('Enquiry error:', error)
       router.push('/enquiries')
     } finally {
       setLoading(false)
@@ -55,7 +54,6 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
       }
     } catch (error) {
       toast.error('Failed to update enquiry status')
-      console.error('Status update error:', error)
     }
   }
 
@@ -73,7 +71,6 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
       }
     } catch (error) {
       toast.error('Failed to assign enquiry')
-      console.error('Assignment error:', error)
     }
   }
 
@@ -91,7 +88,6 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
       }
     } catch (error) {
       toast.error('Failed to add response')
-      console.error('Response error:', error)
     }
   }
 
@@ -113,7 +109,6 @@ export default function EnquiryDetailPage({ enquiryId }: EnquiryDetailPageProps)
       }
     } catch (error) {
       toast.error('Failed to delete enquiry')
-      console.error('Delete enquiry error:', error)
     }
   }
 

@@ -102,7 +102,6 @@ export default function AnalyticsPage() {
 
       setData(newData)
     } catch (error) {
-      console.error('Analytics data fetch error:', error)
       toast.error('Failed to load analytics data')
     } finally {
       setLoading(false)
@@ -338,7 +337,7 @@ export default function AnalyticsPage() {
                       {typeof product.category === 'object' ? product.category.name : product.category}
                     </span>
                     {typeof product.subcategory === 'object' && product.subcategory.name && (
-                      <span className="text-xs text-gray-500">• {product.subcategory.name}</span>
+                      <span className="text-xs text-gray-500">â€¢ {product.subcategory.name}</span>
                     )}
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

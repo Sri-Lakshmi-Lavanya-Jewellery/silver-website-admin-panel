@@ -89,7 +89,6 @@ export default function Dashboard() {
         }))
       }
     } catch (error) {
-      console.error('Dashboard data fetch error:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setLoading(false)
@@ -346,7 +345,7 @@ export default function Dashboard() {
                         {getCategoryDisplayName(product.category)}
                       </span>
                       {getSubcategoryDisplayName(product.subcategory) && (
-                        <span className="text-xs text-gray-500">• {getSubcategoryDisplayName(product.subcategory)}</span>
+                        <span className="text-xs text-gray-500">â€¢ {getSubcategoryDisplayName(product.subcategory)}</span>
                       )}
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

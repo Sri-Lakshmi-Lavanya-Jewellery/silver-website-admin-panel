@@ -50,7 +50,6 @@ export default function CategoryDetailModal({
         // Otherwise, we'll just show the current products
       }
     } catch (error) {
-      console.error('Failed to fetch category products:', error)
       toast.error('Failed to load category products')
     } finally {
       setLoading(false)

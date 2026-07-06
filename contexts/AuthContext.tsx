@@ -24,6 +24,13 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
+const clearStoredAuth = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_refresh_token')
+  localStorage.removeItem('auth_user')
+  setAuthToken(null)
+}
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -32,65 +39,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAuthenticated: false,
   })
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage — but never trust it blindly.
+  // The stored token is validated against the backend (/auth/me) before the
+  // session is restored; any failure clears the stored auth and logs out.
   useEffect(() => {
     const initAuth = async () => {
-      console.log('🚀 AuthContext: Initializing authentication state...')
-      
+      const token = localStorage.getItem('auth_token')
+      const userStr = localStorage.getItem('auth_user')
+
+      if (!token || !userStr) {
+        clearStoredAuth()
+        setAuthState(prev => ({ ...prev, isLoading: false }))
+        return
+      }
+
+      // Set the token so the /auth/me request is authenticated.
+      setAuthToken(token)
+
       try {
-        const token = localStorage.getItem('auth_token')
-        const userStr = localStorage.getItem('auth_user')
-        
-        console.log('🔍 AuthContext: Checking localStorage:', { 
-          hasToken: !!token, 
-          hasUser: !!userStr 
-        })
-        
-        if (token && userStr) {
-          const user = JSON.parse(userStr)
-          console.log('✅ AuthContext: Found stored auth, restoring session for:', { 
-            email: user.email, 
-            role: user.role,
-            roleType: typeof user.role,
-            userObject: user
-          })
-          
-          // Validate that the user object has required properties
-          if (!user.role) {
-            console.warn('⚠️ AuthContext: User object missing role property, logging out...')
-            localStorage.removeItem('auth_token')
-            localStorage.removeItem('auth_refresh_token')
-            localStorage.removeItem('auth_user')
-            setAuthState(prev => ({
-              ...prev,
-              isLoading: false,
-            }))
-            return
-          }
-          
-          setAuthState({
-            user,
-            token,
-            isLoading: false,
-            isAuthenticated: true,
-          })
-          
-          // Set token in API client
-          setAuthToken(token)
-          console.log('🔑 AuthContext: Token restored to API client')
-        } else {
-          console.log('❌ AuthContext: No stored auth found, user is unauthenticated')
-          setAuthState(prev => ({
-            ...prev,
-            isLoading: false,
-          }))
+        const res = await authApi.getCurrentUser()
+        if (!res.success || !res.data || !res.data.role) {
+          clearStoredAuth()
+          setAuthState(prev => ({ ...prev, isLoading: false, isAuthenticated: false, user: null, token: null }))
+          return
         }
-      } catch (error) {
-        console.error('💥 AuthContext: Error during initialization:', error)
-        setAuthState(prev => ({
-          ...prev,
+
+        // Trust the server's user object over the (possibly stale) stored copy.
+        const user = res.data
+        localStorage.setItem('auth_user', JSON.stringify(user))
+
+        setAuthState({
+          user,
+          token,
           isLoading: false,
-        }))
+          isAuthenticated: true,
+        })
+      } catch {
+        // Token invalid/expired or backend unreachable — do not restore session.
+        clearStoredAuth()
+        setAuthState(prev => ({ ...prev, isLoading: false, isAuthenticated: false, user: null, token: null }))
       }
     }
 
@@ -98,141 +85,83 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const login = async (credentials: LoginCredentials) => {
-    console.log('🔐 AuthContext: Starting login process for:', credentials.email)
-    
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }))
-      console.log('🔄 AuthContext: Set loading state to true')
-      
-      console.log('📡 AuthContext: Making API call to authApi.login...')
+
       const response = await authApi.login(credentials)
-      console.log('✅ AuthContext: Login API response received:', { 
-        success: response.success,
-        hasData: !!response.data,
-        dataKeys: response.data ? Object.keys(response.data) : []
-      })
-      
+
       if (!response.success || !response.data) {
-        throw new Error('Login failed: Invalid response from server')
+        throw new Error('Login failed: invalid response from server')
       }
-      
-      console.log('🔍 AuthContext: Raw API response data:', response.data)
-      
-      // Handle different possible API response structures
-      let userData = response.data as AuthResponse
-      let user = userData.user
-      let token = userData.token
-      let refreshToken = userData.refreshToken
-      
-      // Check if the response has a different structure
-      if (!user && (response.data as any).email) {
-        console.log('🔄 AuthContext: API returned user data directly, restructuring...')
-        const rawData = response.data as any
-        user = {
-          id: rawData.id || rawData._id || 'unknown',
-          email: rawData.email,
-          name: rawData.name || rawData.username || 'Unknown User',
-          role: rawData.role || rawData.userRole || 'admin' as const,
-          createdAt: rawData.createdAt || new Date().toISOString(),
-          updatedAt: rawData.updatedAt || new Date().toISOString(),
-        }
-        token = rawData.accessToken || rawData.token || 'temp_token'
-        refreshToken = rawData.refreshToken || 'temp_refresh_token'
+
+      const { user, token, refreshToken } = response.data as AuthResponse
+
+      // Require a fully-formed user + token. Never fabricate credentials or
+      // default a missing role — a malformed response is a failed login.
+      if (!user || !user.email || !user.role || !token) {
+        throw new Error('Login failed: invalid user data received from server')
       }
-      
-      // Ensure role is properly set
-      if (user && !user.role) {
-        console.warn('⚠️ AuthContext: User role missing, setting default role as admin')
-        user = { ...user, role: 'admin' as const }
-      }
-      
-      // Validate required user properties
-      if (!user || !user.email || !user.role) {
-        console.error('❌ AuthContext: Invalid user data received from API:', user)
-        throw new Error('Invalid user data received from server')
-      }
-      
-      console.log('👤 AuthContext: Processed user data:', { 
-        hasUser: !!user,
-        userKeys: user ? Object.keys(user) : [],
-        email: user?.email,
-        name: user?.name,
-        role: user?.role,
-        roleType: typeof user?.role,
-        hasToken: !!token,
-        hasRefreshToken: !!refreshToken
-      })
-      
+
       // Store in localStorage
       localStorage.setItem('auth_token', token)
-      localStorage.setItem('auth_refresh_token', refreshToken)
+      if (refreshToken) {
+        localStorage.setItem('auth_refresh_token', refreshToken)
+      }
       localStorage.setItem('auth_user', JSON.stringify(user))
-      console.log('💾 AuthContext: Stored tokens and user data in localStorage')
-      console.log('💾 AuthContext: Stored user object:', JSON.stringify(user, null, 2))
-      
+
       // Set token in API client
       setAuthToken(token)
-      console.log('🔑 AuthContext: Set token in API client')
-      
+
       setAuthState({
         user,
         token,
         isLoading: false,
         isAuthenticated: true,
       })
-      console.log('✨ AuthContext: Updated auth state - user is now authenticated')
-      console.log('✨ AuthContext: Final auth state user role:', user?.role)
-      
-    } catch (error: any) {
-      console.error('❌ AuthContext: Login failed:', error.message || error)
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-      }))
+    } catch (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }))
       throw error
     }
   }
 
   const logout = () => {
-    console.log('🚪 AuthContext: Starting logout process...')
-    
-    // Clear localStorage
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_refresh_token')
-    localStorage.removeItem('auth_user')
-    console.log('🗑️ AuthContext: Cleared all auth data from localStorage')
-    
-    // Clear API client token
-    setAuthToken(null)
-    console.log('🔑 AuthContext: Cleared token from API client')
-    
+    clearStoredAuth()
     setAuthState({
       user: null,
       token: null,
       isLoading: false,
       isAuthenticated: false,
     })
-    console.log('✅ AuthContext: User logged out successfully')
   }
 
   const refreshToken = async () => {
     try {
-      const refreshToken = localStorage.getItem('auth_refresh_token')
-      if (!refreshToken) {
+      const storedRefreshToken = localStorage.getItem('auth_refresh_token')
+      if (!storedRefreshToken) {
         throw new Error('No refresh token available')
       }
-      
-      const response = await authApi.refreshToken(refreshToken)
+
+      const response = await authApi.refreshToken(storedRefreshToken)
+      if (!response.success || !response.data) {
+        throw new Error('Failed to refresh session')
+      }
+
       const { user, token: newToken, refreshToken: newRefreshToken } = response.data as AuthResponse
-      
+
+      if (!user || !user.role || !newToken) {
+        throw new Error('Failed to refresh session: invalid response')
+      }
+
       // Update localStorage
       localStorage.setItem('auth_token', newToken)
-      localStorage.setItem('auth_refresh_token', newRefreshToken)
+      if (newRefreshToken) {
+        localStorage.setItem('auth_refresh_token', newRefreshToken)
+      }
       localStorage.setItem('auth_user', JSON.stringify(user))
-      
+
       // Set token in API client
       setAuthToken(newToken)
-      
+
       setAuthState({
         user,
         token: newToken,

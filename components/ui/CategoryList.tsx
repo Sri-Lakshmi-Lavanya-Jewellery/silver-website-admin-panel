@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Category } from '@/types'
-import { categoryApi } from '@/lib/api'
+import { categoryApi, apiUtils } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import {
   PencilIcon,
@@ -41,12 +41,6 @@ export default function CategoryList({
     return category.id || category._id || ''
   }
 
-  console.log('CategoryList received categories:', categories.map(c => ({
-    name: c.name,
-    hasChildren: !!(c.children && c.children.length > 0),
-    childrenCount: c.children?.length || 0
-  })))
-
   const toggleExpanded = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories)
     if (newExpanded.has(categoryId)) {
@@ -73,8 +67,7 @@ export default function CategoryList({
         throw new Error(response.message || 'Failed to delete category')
       }
     } catch (error) {
-      console.error('Delete category error:', error)
-      toast.error('Failed to delete category')
+      toast.error(apiUtils.handleError(error))
     } finally {
       setDeletingCategory(null)
     }
@@ -93,8 +86,7 @@ export default function CategoryList({
         throw new Error(response.message || 'Failed to update category')
       }
     } catch (error) {
-      console.error('Toggle category error:', error)
-      toast.error('Failed to update category')
+      toast.error(apiUtils.handleError(error))
     }
   }
 
@@ -103,12 +95,6 @@ export default function CategoryList({
     const categoryId = getCategoryId(category)
     const isExpanded = expandedCategories.has(categoryId)
     const isDeleting = deletingCategory === categoryId
-
-    console.log(`Rendering category ${category.name} at level ${level}:`, {
-      hasChildren,
-      childrenCount: category.children?.length || 0,
-      isExpanded
-    })
 
     return (
       <div key={categoryId} className="border border-gray-200 rounded-lg mb-2">

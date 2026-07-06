@@ -95,7 +95,6 @@ export default function CategoryForm({
         throw new Error(response.message || 'Failed to save category')
       }
     } catch (error) {
-      console.error('Category save error:', error)
       toast.error('Failed to save category')
     } finally {
       setIsSubmitting(false)

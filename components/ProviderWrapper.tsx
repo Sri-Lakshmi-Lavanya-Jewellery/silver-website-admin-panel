@@ -1,7 +1,8 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { AppProvider } from '@/contexts/AppContext'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
@@ -24,12 +25,39 @@ export default function ProviderWrapper({ children }: ProviderWrapperProps) {
 
 function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  
-  // Check if current route should not have the main layout
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  // Auth pages render bare (no sidebar/header shell).
   const isAuthPage = pathname === '/login' || pathname === '/unauthorized'
-  
+
+  // Redirect unauthenticated visitors on protected routes to the login page.
+  // (Kept here so the shell never mounts for them, in addition to per-page
+  // ProtectedRoute guards.)
+  useEffect(() => {
+    if (!isAuthPage && !isLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthPage, isLoading, isAuthenticated, router])
+
   if (isAuthPage) {
     return <>{children}</>
+  }
+
+  // While auth state is still resolving, show a lightweight loader instead of
+  // flashing the full admin shell to a not-yet-authenticated visitor.
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+      </div>
+    )
+  }
+
+  // Not authenticated on a protected route: don't render the shell at all.
+  // ProtectedRoute (rendered inside each page) performs the redirect to /login.
+  if (!isAuthenticated) {
+    return null
   }
 
   return (

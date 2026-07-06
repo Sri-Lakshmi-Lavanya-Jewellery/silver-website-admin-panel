@@ -19,20 +19,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setIsLoading(true)
-    
-    console.log('📝 LoginPage: Form submitted for email:', email)
 
     try {
-      console.log('🔐 LoginPage: Calling login function...')
       await login({ email, password })
-      console.log('✅ LoginPage: Login successful, redirecting to dashboard...')
       router.push('/dashboard')
     } catch (err: any) {
-      console.error('❌ LoginPage: Login failed:', err.message || err)
       setError(err.message || 'Login failed. Please check your credentials.')
     } finally {
       setIsLoading(false)
-      console.log('🔄 LoginPage: Loading state cleared')
     }
   }
 
@@ -134,9 +128,6 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-xs text-gray-500">
               Contact your administrator for access credentials
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Check browser console for authentication flow logs
             </p>
           </div>
         </form>
