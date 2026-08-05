@@ -141,6 +141,44 @@ async function apiRequest<T>(
   return data
 }
 
+// Rates API — manual gold/silver rate control (admin/editor).
+export interface RatesEnvelope {
+  status?: string
+  message?: string
+  data?: {
+    enabled?: boolean
+    gold_24k?: number
+    gold_22k?: number
+    silver_per_kg?: number
+    updatedAt?: string
+    updatedBy?: string
+  }
+  resolved?: {
+    gold_24k?: number | null
+    gold_22k?: number | null
+    silver_per_kg?: number | null
+    source?: string
+    is_manual?: boolean
+  }
+}
+
+export const ratesApi = {
+  // Current manual settings + what's actually being served right now.
+  getManual: (): Promise<RatesEnvelope> =>
+    apiRequest<unknown>('/rates/manual', { method: 'GET' }) as unknown as Promise<RatesEnvelope>,
+  // Set / clear the manual override.
+  setManual: (data: {
+    enabled: boolean
+    gold_24k?: number
+    gold_22k?: number
+    silver_per_kg?: number
+  }): Promise<RatesEnvelope> =>
+    apiRequest<unknown>('/rates/manual', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }) as unknown as Promise<RatesEnvelope>,
+}
+
 // Image Upload API
 export const imageApi = {
   // Upload single image

@@ -9,7 +9,8 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   EnvelopeIcon,
-  PaintBrushIcon
+  PaintBrushIcon,
+  CurrencyRupeeIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['admin', 'editor', 'viewer'] },
   { name: 'Products', href: '/products', icon: CubeIcon, roles: ['admin', 'editor'] },
   { name: 'Site Content', href: '/content', icon: PaintBrushIcon, roles: ['admin', 'editor'] },
+  { name: 'Rate Update', href: '/rates', icon: CurrencyRupeeIcon, roles: ['admin', 'editor'] },
   { name: 'Categories', href: '/categories', icon: TagIcon, roles: ['admin', 'editor'] },
   { name: 'Inventory', href: '/inventory', icon: ArchiveBoxIcon, roles: ['admin', 'editor'] },
   { name: 'Enquiries', href: '/enquiries', icon: EnvelopeIcon, roles: ['admin', 'editor'] },
