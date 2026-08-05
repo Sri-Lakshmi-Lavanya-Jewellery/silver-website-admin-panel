@@ -41,12 +41,57 @@ export const setAuthToken = (token: string | null) => {
 
 export const getAuthToken = () => authToken
 
+// Clear any stored auth and send the user to the login screen. Used when the
+// server rejects our credentials (401) and a refresh is not possible.
+function clearAuthAndRedirect() {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_refresh_token')
+    localStorage.removeItem('auth_user')
+  } catch {
+    // localStorage may be unavailable; ignore.
+  }
+  setAuthToken(null)
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login')
+  }
+}
+
+// Attempt exactly one token refresh using the stored refresh token.
+// Returns true if a fresh access token was obtained.
+async function tryRefreshToken(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  const storedRefresh = localStorage.getItem('auth_refresh_token')
+  if (!storedRefresh) return false
+  try {
+    const res = await authApi.refreshToken(storedRefresh)
+    if (res.success && res.data?.token) {
+      localStorage.setItem('auth_token', res.data.token)
+      if (res.data.refreshToken) {
+        localStorage.setItem('auth_refresh_token', res.data.refreshToken)
+      }
+      if (res.data.user) {
+        localStorage.setItem('auth_user', JSON.stringify(res.data.user))
+      }
+      setAuthToken(res.data.token)
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  // Internal: prevents infinite refresh loops. The refresh call itself and the
+  // single post-refresh retry pass `true`.
+  isRetry = false
 ): Promise<APIResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`
-  
+
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -56,22 +101,82 @@ async function apiRequest<T>(
     ...options,
   }
 
+  let response: Response
   try {
-    const response = await fetch(url, config)
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new ApiError(response.status, data.message || 'API request failed')
-    }
-
-    return data
+    response = await fetch(url, config)
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error
-    }
-    console.error('Network error:', error)
-    throw new ApiError(500, 'Network error occurred')
+    // Genuine network/transport failure (fetch rejected). Preserve the message.
+    const message = error instanceof Error ? error.message : 'Network error occurred'
+    throw new ApiError(0, message)
   }
+
+  // Parse the body (may be empty for some responses).
+  let data: any = null
+  try {
+    data = await response.json()
+  } catch {
+    data = null
+  }
+
+  if (!response.ok) {
+    // Handle expired/invalid session. Try exactly one refresh, otherwise log out.
+    const isAuthEndpoint = endpoint.startsWith('/auth/')
+    if (response.status === 401 && !isRetry && !isAuthEndpoint) {
+      const refreshed = await tryRefreshToken()
+      if (refreshed) {
+        return apiRequest<T>(endpoint, options, true)
+      }
+      clearAuthAndRedirect()
+    } else if (response.status === 401 && !isAuthEndpoint) {
+      // Retry already attempted (or this is the retry) and still 401.
+      clearAuthAndRedirect()
+    }
+
+    throw new ApiError(
+      response.status,
+      (data && data.message) || `Request failed (${response.status})`
+    )
+  }
+
+  return data
+}
+
+// Rates API — manual gold/silver rate control (admin/editor).
+export interface RatesEnvelope {
+  status?: string
+  message?: string
+  data?: {
+    enabled?: boolean
+    gold_24k?: number
+    gold_22k?: number
+    silver_per_kg?: number
+    updatedAt?: string
+    updatedBy?: string
+  }
+  resolved?: {
+    gold_24k?: number | null
+    gold_22k?: number | null
+    silver_per_kg?: number | null
+    source?: string
+    is_manual?: boolean
+  }
+}
+
+export const ratesApi = {
+  // Current manual settings + what's actually being served right now.
+  getManual: (): Promise<RatesEnvelope> =>
+    apiRequest<unknown>('/rates/manual', { method: 'GET' }) as unknown as Promise<RatesEnvelope>,
+  // Set / clear the manual override.
+  setManual: (data: {
+    enabled: boolean
+    gold_24k?: number
+    gold_22k?: number
+    silver_per_kg?: number
+  }): Promise<RatesEnvelope> =>
+    apiRequest<unknown>('/rates/manual', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }) as unknown as Promise<RatesEnvelope>,
 }
 
 // Image Upload API
@@ -177,15 +282,11 @@ export const productApi = {
 
   // Update product
   updateProduct: async (id: string, productData: Partial<ProductFormData>): Promise<APIResponse<Product>> => {
-    console.log('API updateProduct called with:', { id, productData })
-    
     const response = await apiRequest<Product>(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(productData),
     })
-    
-    console.log('API updateProduct response:', response)
-    
+
     // Normalize product data
     if (response.success && response.data) {
       response.data = apiUtils.normalizeProduct(response.data)
@@ -501,6 +602,27 @@ export const apiUtils = {
   }
 }
 
+// Site Content API (editable hero/banners/sections)
+export const contentApi = {
+  // List all sections with their current data (override-or-default).
+  list: async (): Promise<APIResponse<{ section: string; data: any }[]>> => {
+    return apiRequest<{ section: string; data: any }[]>('/content')
+  },
+  // Save a section's data.
+  updateSection: async (section: string, data: any): Promise<APIResponse<{ section: string; data: any }>> => {
+    return apiRequest<{ section: string; data: any }>(`/content/${section}`, {
+      method: 'PUT',
+      body: JSON.stringify({ data }),
+    })
+  },
+  // Revert a section to the built-in default.
+  resetSection: async (section: string): Promise<APIResponse<{ section: string; data: any }>> => {
+    return apiRequest<{ section: string; data: any }>(`/content/${section}/reset`, {
+      method: 'POST',
+    })
+  },
+}
+
 // Bulk Operations API (Admin/Manager Only)
 export const bulkApi = {
   // Bulk update products
@@ -518,116 +640,6 @@ export const bulkApi = {
       body: JSON.stringify({ productIds }),
     })
   },
-}
-
-// API Testing and Demo utilities
-export const apiDemo = {
-  // Test all major endpoints
-  testAllEndpoints: async (): Promise<{ endpoint: string; status: 'success' | 'error'; message: string }[]> => {
-    const results: { endpoint: string; status: 'success' | 'error'; message: string }[] = []
-
-    // Test health check
-    try {
-      await healthApi.check()
-      results.push({ endpoint: '/health', status: 'success', message: 'OK' })
-    } catch (error) {
-      results.push({ endpoint: '/health', status: 'error', message: apiUtils.handleError(error) })
-    }
-
-    // Test API info
-    try {
-      await healthApi.getApiInfo()
-      results.push({ endpoint: '/api/v1', status: 'success', message: 'OK' })
-    } catch (error) {
-      results.push({ endpoint: '/api/v1', status: 'error', message: apiUtils.handleError(error) })
-    }
-
-    // Test products endpoint
-    try {
-      await productApi.getProducts({ limit: 1 })
-      results.push({ endpoint: '/products', status: 'success', message: 'OK' })
-    } catch (error) {
-      results.push({ endpoint: '/products', status: 'error', message: apiUtils.handleError(error) })
-    }
-
-    // Test categories endpoint
-    try {
-      await categoryApi.getCategories()
-      results.push({ endpoint: '/categories', status: 'success', message: 'OK' })
-    } catch (error) {
-      results.push({ endpoint: '/categories', status: 'error', message: apiUtils.handleError(error) })
-    }
-
-    // Test analytics endpoint
-    try {
-      await analyticsApi.getStatistics()
-      results.push({ endpoint: '/products/analytics/statistics', status: 'success', message: 'OK' })
-    } catch (error) {
-      results.push({ endpoint: '/products/analytics/statistics', status: 'error', message: apiUtils.handleError(error) })
-    }
-
-    return results
-  },
-
-  // Generate sample data for testing
-  generateSampleProduct: (): ProductFormData => ({
-    title: 'Sample Silver Deepam',
-    images: ['/assets/images/sample.jpg'],
-    isNewProduct: true,
-    category: 'pooja-items',
-    subcategory: 'deepam',
-    weight: '25g',
-    inStock: true,
-    isActive: true,
-    models: {
-      'Standard': {
-        'medium': {
-          length: '6cm',
-          height: '10cm',
-          breadth: '6cm',
-          weight: '25g',
-          images: ['/assets/images/sample-model.jpg']
-        }
-      }
-    }
-  }),
-
-  // Test product CRUD operations
-  testProductCRUD: async () => {
-    const sampleProduct = apiDemo.generateSampleProduct()
-    
-    try {
-      // Create
-      const createResponse = await productApi.createProduct(sampleProduct)
-      if (!createResponse.success || !createResponse.data) {
-        throw new Error('Failed to create product')
-      }
-
-      const productId = createResponse.data.id
-
-      // Read
-      const readResponse = await productApi.getProduct(productId)
-      if (!readResponse.success) {
-        throw new Error('Failed to read product')
-      }
-
-      // Update
-      const updateResponse = await productApi.updateProduct(productId, { title: 'Updated Title' })
-      if (!updateResponse.success) {
-        throw new Error('Failed to update product')
-      }
-
-      // Delete
-      const deleteResponse = await productApi.deleteProduct(productId)
-      if (!deleteResponse.success) {
-        throw new Error('Failed to delete product')
-      }
-
-      return { status: 'success', message: 'All CRUD operations completed successfully' }
-    } catch (error) {
-      return { status: 'error', message: apiUtils.handleError(error) }
-    }
-  }
 }
 
 // Enquiry API

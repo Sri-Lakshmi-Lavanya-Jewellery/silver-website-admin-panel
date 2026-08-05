@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Product, ProductFormData } from '@/types'
-import { productApi } from '@/lib/api'
+import { productApi, apiUtils } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import ProductForm from '@/components/forms/ProductForm'
 
@@ -39,25 +39,19 @@ export default function ProductEditPage() {
 
   const handleSubmit = async (data: ProductFormData) => {
     if (!product) {
-      console.log('No product found for update')
       return
     }
 
-    console.log('Updating product:', product.id, 'with data:', data)
-
     try {
       const response = await productApi.updateProduct(product.id, data)
-      console.log('Update response:', response)
       if (response.success) {
         toast.success('Product updated successfully')
         router.push('/products')
       } else {
-        console.error('Update failed:', response.message)
         toast.error(response.message || 'Failed to update product')
       }
     } catch (error) {
-      console.error('Update error:', error)
-      toast.error('Failed to update product')
+      toast.error(apiUtils.handleError(error))
     }
   }
 

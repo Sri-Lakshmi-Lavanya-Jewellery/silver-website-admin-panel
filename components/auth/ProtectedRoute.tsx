@@ -14,37 +14,16 @@ export default function ProtectedRoute({ children, allowedRoles = ['admin', 'edi
   const router = useRouter()
 
   useEffect(() => {
-    console.log('🛡️ ProtectedRoute: Checking access...', { 
-      isLoading, 
-      isAuthenticated, 
-      user: user ? {
-        email: user.email,
-        role: user.role,
-        roleType: typeof user.role,
-        roleValue: JSON.stringify(user.role),
-        fullUser: user
-      } : null,
-      allowedRoles,
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
-    })
-    
     if (!isLoading) {
       if (!isAuthenticated) {
-        console.log('❌ ProtectedRoute: User not authenticated, redirecting to login')
         router.push('/login')
         return
       }
 
       if (user && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        console.log('🚫 ProtectedRoute: User role not allowed', { 
-          userRole: user.role, 
-          allowedRoles 
-        })
         router.push('/unauthorized')
         return
       }
-      
-      console.log('✅ ProtectedRoute: Access granted')
     }
   }, [isAuthenticated, isLoading, user, router, allowedRoles])
 

@@ -33,7 +33,6 @@ export default function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Implement global search
-    console.log('Search:', searchQuery)
   }
 
   return (

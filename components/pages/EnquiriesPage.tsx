@@ -46,7 +46,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to load enquiries')
-      console.error('Enquiries error:', error)
     } finally {
       setLoading(false)
     }
@@ -61,7 +60,6 @@ export default function EnquiriesPage() {
         setStatistics(response.data)
       }
     } catch (error) {
-      console.error('Statistics error:', error)
     } finally {
       setStatsLoading(false)
     }
@@ -86,7 +84,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to update enquiry status')
-      console.error('Status update error:', error)
     }
   }
 
@@ -106,7 +103,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to assign enquiry')
-      console.error('Assignment error:', error)
     }
   }
 
@@ -126,7 +122,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to add response')
-      console.error('Response error:', error)
     }
   }
 
@@ -149,7 +144,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to delete enquiry')
-      console.error('Delete enquiry error:', error)
     }
   }
 
@@ -170,7 +164,6 @@ export default function EnquiriesPage() {
       }
     } catch (error) {
       toast.error('Failed to update enquiries')
-      console.error('Bulk update error:', error)
     }
   }
 

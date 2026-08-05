@@ -1,4 +1,3 @@
-import ApiTestPanel from '@/components/ui/ApiTestPanel'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 export const metadata = {
@@ -17,9 +16,6 @@ export default function SettingsPage() {
           Manage your application settings and preferences
         </p>
       </div>
-
-      {/* API Test Panel */}
-      <ApiTestPanel />
 
       {/* Settings Content */}
       <div className="bg-white rounded-lg shadow-sm p-6">

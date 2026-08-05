@@ -22,11 +22,7 @@ export default function ImageUpload({
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Debug: Log re-renders
-  console.log('ImageUpload rendered with', images?.length || 0, 'images')
-
   const handleFileSelect = async (files: FileList) => {
-    console.log('handleFileSelect called with', files.length, 'files')
     const currentImages = images || []
     if (currentImages.length + files.length > maxImages) {
       toast.error(`Maximum ${maxImages} images allowed`)
@@ -36,39 +32,31 @@ export default function ImageUpload({
     setUploading(true)
     try {
       const filesArray = Array.from(files)
-      console.log('Processing files:', filesArray.map(f => f.name))
-      
+
       if (filesArray.length === 1) {
         const response = await imageApi.uploadImage(filesArray[0])
-        console.log('Single upload response:', response)
         if (response.success && response.data && response.data.urls) {
           // Use the medium size URL for display, fallback to original
           const imageUrl = response.data.urls.medium || response.data.urls.original
-          console.log('Using image URL:', imageUrl)
           onImagesChange([...currentImages, imageUrl])
           toast.success('Image uploaded successfully')
         } else {
-          console.error('Invalid response structure:', response)
           toast.error('Failed to process uploaded image')
         }
       } else {
         const response = await imageApi.uploadMultipleImages(filesArray)
-        console.log('Multiple upload response:', response)
         if (response.success && response.data && response.data.images) {
           // Use the medium size URL for display, fallback to original
-          const uploadedPaths = response.data.images.map(image => 
+          const uploadedPaths = response.data.images.map(image =>
             image.urls.medium || image.urls.original
           )
-          console.log('Using image URLs:', uploadedPaths)
           onImagesChange([...currentImages, ...uploadedPaths])
           toast.success(`${filesArray.length} images uploaded successfully`)
         } else {
-          console.error('Invalid response structure:', response)
           toast.error('Failed to process uploaded images')
         }
       }
     } catch (error) {
-      console.error('Upload error:', error)
       if (error instanceof Error) {
         toast.error(`Failed to upload images: ${error.message}`)
       } else {
@@ -185,12 +173,7 @@ export default function ImageUpload({
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
-                    console.warn('Failed to load image:', image)
                     target.src = '/placeholder-product.jpg'
-                  }}
-                  onLoad={() => {
-                    // Image loaded successfully
-                    console.log('Image loaded successfully:', image)
                   }}
                 />
               </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Product, ProductFilters } from '@/types'
-import { productApi } from '@/lib/api'
+import { productApi, apiUtils } from '@/lib/api'
 import { useProducts } from '@/contexts/AppContext'
 import { toast } from 'react-hot-toast'
 import ProductList from '@/components/pages/ProductList'
@@ -40,8 +40,7 @@ export default function ProductsPage() {
         }
       }
     } catch (error) {
-      toast.error('Failed to load products')
-      console.error('Products error:', error)
+      toast.error(apiUtils.handleError(error))
     } finally {
       setLoading(false)
     }
@@ -59,8 +58,7 @@ export default function ProductsPage() {
         deleteProduct(id)
       }
     } catch (error) {
-      toast.error('Failed to delete product')
-      console.error('Delete product error:', error)
+      toast.error(apiUtils.handleError(error))
     }
   }
 
@@ -73,8 +71,7 @@ export default function ProductsPage() {
         setProducts(products.map(p => p.id === id ? response.data! : p))
       }
     } catch (error) {
-      toast.error('Failed to update stock status')
-      console.error('Stock update error:', error)
+      toast.error(apiUtils.handleError(error))
     }
   }
 
@@ -95,8 +92,7 @@ export default function ProductsPage() {
         setProducts(products.map(p => p.id === id ? response.data! : p))
       }
     } catch (error) {
-      toast.error('Failed to update product status')
-      console.error('Product active status update error:', error)
+      toast.error(apiUtils.handleError(error))
     }
   }
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { ProductFormData } from '@/types'
-import { productApi } from '@/lib/api'
+import { productApi, apiUtils } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import ProductForm from '@/components/forms/ProductForm'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -18,7 +18,7 @@ export default function NewProductPage() {
         router.push('/products')
       }
     } catch (error) {
-      toast.error('Failed to create product')
+      toast.error(apiUtils.handleError(error))
     }
   }
 

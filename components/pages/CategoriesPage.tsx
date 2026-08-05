@@ -35,11 +35,9 @@ export default function CategoriesPage() {
         // Convert API response to match our Category interface
         const normalizedCategories = normalizeCategories(response.data)
         setCategories(normalizedCategories)
-        console.log('Loaded categories with hierarchy:', normalizedCategories)
       }
     } catch (error) {
       toast.error('Failed to load categories')
-      console.error('Categories error:', error)
       // Fallback to sample data for development
       const normalizedSampleData = normalizeCategories(sampleCategories)
       setCategories(normalizedSampleData)
@@ -49,8 +47,6 @@ export default function CategoriesPage() {
   }
 
   const normalizeCategories = (apiCategories: any[]): Category[] => {
-    console.log('Normalizing categories from API:', apiCategories)
-    
     const normalize = (cat: any): Category => {
       const normalized: Category = {
         id: cat.id || cat._id || '',
@@ -67,18 +63,11 @@ export default function CategoriesPage() {
         // Recursively normalize children if they exist
         children: cat.children ? cat.children.map(normalize) : []
       }
-      
-      console.log(`Normalized category ${cat.name}:`, {
-        hasParent: !!normalized.parentId,
-        childrenCount: normalized.children?.length || 0
-      })
-      
+
       return normalized
     }
 
-    const result = apiCategories.map(normalize)
-    console.log('Final normalized categories:', result)
-    return result
+    return apiCategories.map(normalize)
   }
 
   const handleSaveCategory = async (savedCategory: Category) => {
@@ -89,7 +78,6 @@ export default function CategoriesPage() {
   }
 
   const handleEditCategory = (category: Category) => {
-    console.log('Editing category:', category)
     setEditingCategory(category)
     setParentForSubcategory(null)
     setShowForm(true)
